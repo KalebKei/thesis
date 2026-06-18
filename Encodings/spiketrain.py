@@ -2,6 +2,8 @@ import tonic
 from tonic import transforms
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
+import numpy as np
+
 
 
 debug = True
@@ -10,10 +12,13 @@ plot = True
 
 # Translate to frame
 
-transform = transforms.ToFrame(
-    sensor_size=(34, 34, 2),
-    n_time_bins=50
-)
+transform = transforms.Compose([
+    transforms.ToFrame(
+        sensor_size=(34,34,2),
+        n_time_bins=50
+    ),
+    lambda x: (x > 0).astype(np.float32)
+])
 
 # Load the dataset and encode
 raw_dataset = tonic.datasets.NMNIST(
@@ -45,6 +50,12 @@ if(debug):
     print("min:", frames.min())
     print("max:", frames.max())
     print("nonzero:", (frames > 0).sum())
+
+    vals = np.unique(frames)
+
+    print(vals[:20])
+    print("count:", len(vals))
+    
 
 
 if plot:
@@ -89,5 +100,3 @@ if(debug):
     print(f"\tFrame dtype: {frames.dtype}")
     print(f"\tFrame min: {frames.min()}")
     print(f"\tFrame max: {frames.max()}")
-
-

@@ -93,7 +93,7 @@ class SNNModel(nn.Module):
 
         return torch.stack(spike_record, dim=0), {
             "layer1sp": layer1_spikes, # spikes ts
-            "layer1sp": layer2_spikes,
+            "layer2sp": layer2_spikes,
             "outputsp": output_spikes,
             "layer1fr": layer1_fire_rate, # fr here means firing rate, not for real (frfr)
             "layer2fr": layer2_fire_rate,

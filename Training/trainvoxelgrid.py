@@ -6,7 +6,6 @@ from tonic import transforms
 from torch.utils.data import DataLoader
 import torch
 import torch.nn as nn
-import numpy as np
 # import snntorch as snn
 # from tqdm import tqdm
 # from datetime import datetime
@@ -27,13 +26,10 @@ epochs = 1
 
 # Translate to frame
 # encoding
-transform = transforms.Compose([
-    transforms.ToFrame(
-        sensor_size=(34,34,2),
-        n_time_bins=50
-    ),
-    lambda x: (x > 0).astype(np.float32)
-])
+transform = transforms.ToFrame(
+    sensor_size=(34, 34, 2),
+    n_time_bins=50
+)
 
 # Load the dataset and encode
 
@@ -91,7 +87,7 @@ optimizer = torch.optim.Adam(
     lr=1e-3 # i never know what to put this guy at
 )
 
-history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, checkpoint_dir="ModelCheckpoints/SpikeTrain", encoding="spike_train", debug=True)
+history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, checkpoint_dir="ModelCheckpoints/VoxelGrids", encoding="voxel_grid", debug=True)
 
 
 th.plot_hist(history=history, epochs=epochs)
