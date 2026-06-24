@@ -21,7 +21,7 @@ from Models.snn_baseline import SNNModel
 # these are args and such
 debug = True
 plot = True
-epochs = 1
+epochs = 4
 
 
 # Translate to frame

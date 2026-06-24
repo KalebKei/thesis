@@ -6,6 +6,7 @@ from tonic import transforms
 from torch.utils.data import DataLoader
 import torch
 import torch.nn as nn
+import numpy as np
 # import snntorch as snn
 # from tqdm import tqdm
 # from datetime import datetime
@@ -22,8 +23,8 @@ from Models.snn_baseline import SNNModel
 debug = True
 plot = True
 skip_train = True
-model_path = "ModelCheckpoints/VoxelGrids/20260618_133607_checkpoint_epoch_1.pt"
-hist_path = "ModelCheckpoints/VoxelGrids/20260618_133607_hist_checkpoint_epoch_1.pt"
+model_path = "ModelCheckpoints/SpikeTrain/20260618_161838_checkpoint_epoch_4.pt"
+hist_path = "ModelCheckpoints/SpikeTrain/20260618_161838_hist_checkpoint_epoch_4.pt"
 
 # Translate to frame
 # encoding

@@ -22,8 +22,8 @@ from Models.snn_baseline import SNNModel
 debug = True
 plot = True
 skip_train = True
-model_path = "ModelCheckpoints/VoxelGrids/20260618_133607_checkpoint_epoch_1.pt"
-hist_path = "ModelCheckpoints/VoxelGrids/20260618_133607_hist_checkpoint_epoch_1.pt"
+model_path = "ModelCheckpoints/VoxelGrids/20260618_202147_checkpoint_epoch_4.pt"
+hist_path = "ModelCheckpoints/VoxelGrids/20260618_202147_hist_checkpoint_epoch_4.pt"
 
 # Translate to frame
 # encoding

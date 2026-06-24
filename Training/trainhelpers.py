@@ -312,6 +312,7 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
 
 def plot_hist(history, epochs, filename_ext = ""):
     now = datetime.now()
+    epoch_nums = range(1, epochs+1)
 
     if(True):
         print(history)
@@ -319,20 +320,20 @@ def plot_hist(history, epochs, filename_ext = ""):
     ##### plot val vs train acc
     plt.figure(figsize=(8,5))
     plt.plot(
-        epochs,
+        epoch_nums,
         [x * 100 for x in history["train_acc"]],
         marker='o',
         linewidth=2,
         label="Train"
     )
     plt.plot(
-        epochs,
+        epoch_nums,
         [x * 100 for x in history["val_acc"]],
         marker='s',
         linewidth=2,
         label="Validation"
     )
-    plt.xticks(list(range(1, epochs+1)))
+    plt.xticks(list(epoch_nums))
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy (%)")
     plt.title("Training vs Validation Accuracy")
@@ -348,13 +349,13 @@ def plot_hist(history, epochs, filename_ext = ""):
     ##### plot loss
     plt.figure(figsize=(8,5))
     plt.plot(
-        epochs,
+        epoch_nums,
         history["train_loss"],
         marker='o',
         linewidth=2,
         label="Train"
     )
-    plt.xticks(list(range(1, epochs+1)))
+    plt.xticks(list(epoch_nums))
     plt.title("Training Loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
@@ -370,27 +371,27 @@ def plot_hist(history, epochs, filename_ext = ""):
     plt.figure(figsize=(8,5))
 
     plt.plot(
-        epochs,
+        epoch_nums,
         [x * 100 for x in history["layer1_fr"]],
         marker='o',
         linewidth=2,
         label="Layer 1"
     )
     plt.plot(
-        epochs,
+        epoch_nums,
         [x * 100 for x in history["layer2_fr"]],
         marker='s',
         linewidth=2,
         label="Layer 2"
     )
     plt.plot(
-        epochs,
+        epoch_nums,
         [x * 100 for x in history["output_fr"]],
         marker='^',
         linewidth=2,
         label="Output"
     )
-    plt.xticks(list(range(1, epochs+1)))
+    plt.xticks(list(epoch_nums))
     plt.ylim(bottom=0)
     plt.title("Average Firing Rate by Epoch")
     plt.xlabel("Epoch")
@@ -407,27 +408,27 @@ def plot_hist(history, epochs, filename_ext = ""):
     ##### plot spikes
     plt.figure(figsize=(8,5))
     plt.plot(
-        epochs,
+        epoch_nums,
         history["layer1_spikes"],
         marker='o',
         linewidth=2,
         label="Layer 1"
     )
     plt.plot(
-        epochs,
+        epoch_nums,
         history["layer2_spikes"],
         marker='s',
         linewidth=2,
         label="Layer 2"
     )
     plt.plot(
-        epochs,
+        epoch_nums,
         history["output_spikes"],
         marker='^',
         linewidth=2,
         label="Output"
     )
-    plt.xticks(list(range(1, epochs+1)))
+    plt.xticks(list(epoch_nums))
     plt.title("Total Spikes Generated per Epoch")
     plt.xlabel("Epoch")
     plt.ylabel("Spike Count")
