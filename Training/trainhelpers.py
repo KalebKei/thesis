@@ -42,16 +42,26 @@ def load_hist(filename):
     }
 
     with open(filename, "r") as f:
-        history["train_loss"] = ast.literal_eval(f.readline().strip())
-        history["train_acc"] = ast.literal_eval(f.readline().strip())
-        history["val_loss"] = ast.literal_eval(f.readline().strip())
-        history["val_acc"] = ast.literal_eval(f.readline().strip())
-        history["layer1_fr"] = ast.literal_eval(f.readline().strip())
-        history["layer2_fr"] = ast.literal_eval(f.readline().strip())
-        history["output_fr"] = ast.literal_eval(f.readline().strip())
-        history["layer1_spikes"] = ast.literal_eval(f.readline().strip())
-        history["layer2_spikes"] = ast.literal_eval(f.readline().strip())
-        history["output_spikes"] = ast.literal_eval(f.readline().strip())
+        train_loss = ast.literal_eval(f.readline().strip())
+        history["train_loss"] = [float(x) for x in train_loss]
+        train_acc = ast.literal_eval(f.readline().strip())
+        history["train_acc"] = [float(x) for x in train_acc]
+        val_loss = ast.literal_eval(f.readline().strip())
+        history["val_loss"] = [float(x) for x in val_loss]
+        val_acc = ast.literal_eval(f.readline().strip())
+        history["val_acc"] = [float(x) for x in val_acc]
+        layer1_fr = ast.literal_eval(f.readline().strip())
+        history["layer1_fr"] = [int(x) for x in layer1_fr]
+        layer2_fr = ast.literal_eval(f.readline().strip())
+        history["layer2_fr"] = [int(x) for x in layer2_fr]
+        output_fr = ast.literal_eval(f.readline().strip())
+        history["output_fr"] = [int(x) for x in output_fr]
+        layer1_spikes = ast.literal_eval(f.readline().strip())
+        history["layer1_spikes"] = [int(x) for x in layer1_spikes]
+        layer2_spikes = ast.literal_eval(f.readline().strip())
+        history["layer2_spikes"] = [int(x) for x in layer2_spikes]
+        output_spikes = ast.literal_eval(f.readline().strip())
+        history["output_spikes"] = [int(x) for x in output_spikes]
         history["encoding"] = f.readline().strip()
 
     return history
@@ -161,28 +171,31 @@ def validate(
     }
 
 # TODO implement history loading to append for models that are having their training resumed
-def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpoint_dir="ModelCheckpoints/", encoding="spike_train", debug=False):
+def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpoint_dir="ModelCheckpoints/", encoding="spike_train", model_type="snn", history=None, debug=False):
     # call me thomas the way i be trainin
-
-    if(debug):
-        print("Begin training")
 
     model.train()
 
     # plot info
-    history = {
-        "train_loss": [],
-        "train_acc": [],
-        "val_loss": [],
-        "val_acc": [],
-        "layer1_fr": [],
-        "layer2_fr": [],
-        "output_fr": [],
-        "layer1_spikes": [],
-        "layer2_spikes": [],
-        "output_spikes": [],
-        "encoding": encoding
-    }
+    if history is None:
+        history = {
+            "train_loss": [],
+            "train_acc": [],
+            "val_loss": [],
+            "val_acc": [],
+            "layer1_fr": [],
+            "layer2_fr": [],
+            "output_fr": [],
+            "layer1_spikes": [],
+            "layer2_spikes": [],
+            "output_spikes": [],
+            "encoding": encoding
+        }
+        if(debug):
+            print(f'Beginning training on {model_type} model with save location at {checkpoint_dir}')
+    else:
+        if(debug):
+            print(f'Resuming training on {model_type} model with {history["val_acc"][-1]*100}% accuracy and {history["val_loss"][-1]:.2f} loss with save location at {checkpoint_dir}')
 
     for ep in tqdm(range(1, epochs + 1), desc=f"Training ({epochs} epochs)"):
         # data for plot
@@ -282,7 +295,7 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
         checkpoint_path = (
             f"{checkpoint_dir}/"
             f"{datetime.now():%Y%m%d_%H%M%S}_"
-            f"checkpoint_epoch_{ep}.pt"
+            f"checkpoint_epoch_{len(history['train_loss'])}.pt"
         )
 
         torch.save(
@@ -301,7 +314,7 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
         hist_path = (
             f"{checkpoint_dir}/"
             f"{datetime.now():%Y%m%d_%H%M%S}_hist_"
-            f"checkpoint_epoch_{ep}.pt"
+            f"checkpoint_epoch_{len(history['train_loss'])}.pt"
         )
         print(f"Saving history to {hist_path}") # debug
         save_hist(history=history, filename=hist_path)
