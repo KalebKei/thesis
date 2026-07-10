@@ -1,24 +1,26 @@
 import tonic
 from tonic import transforms
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 import numpy as np
 import sys 
 import argparse
+import aedat
 
-import nmnistencodings as encodings
+import gestureencodings as encodings
 
 
 
 ### Command line arguments
 debug = False
 plot = False
-plot_dir = "Plots/NMNIST"
+plot_dir = "Plots/DVSGESTURE"
 encoding = ""
 checkpoint_file = ""
+batch_size = 32
 
 # setup args
-parser = argparse.ArgumentParser(description="Training for NMNIST SNN models.")
+parser = argparse.ArgumentParser(description="Training for DVSGESTURE SNN models.")
 
 parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: voxel grids, 2: DCT, 3: truncated DCT, 4: aggressive DCT")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
@@ -64,22 +66,19 @@ if(args.plot == True):
 
 
 # Load the dataset and encode
-raw_dataset = tonic.datasets.NMNIST(
-    save_to="../Datasets/NMNIST/",
-    train=True
-)
 
-train_dataset = tonic.datasets.NMNIST(
-    save_to="../Datasets/NMNIST/",
+train_dataset = tonic.datasets.DVSGesture(
+    save_to="../Datasets/DVSGESTURE/",
     train=True,
     transform=transform
 )
 
-test_dataset = tonic.datasets.NMNIST(
-    save_to="../Datasets/NMNIST/",
+test_dataset = tonic.datasets.DVSGesture(
+    save_to="../Datasets/DVSGESTURE/",
     train=False,
     transform=transform
 )
+
 
 # Let's do some debug output
 if(debug): 
@@ -101,18 +100,21 @@ if(debug):
 
 if plot:
     print("Generating images")
-    for t in range(10):
-        plt.figure()
-        plt.imshow(frames[t,0])
+    indices = np.linspace(0, frames.shape[0]-1, 10, dtype=int)
+
+    for i, t in enumerate(indices):
+        plt.figure(figsize=(4,4))
+        plt.imshow(frames[t].sum(axis=0), cmap="gray")
         plt.title(f"Timestep {t}")
-        # plt.show()
-        plt.savefig(f"../{plot_dir}/{checkpoint_file}/{encoding}_timestep{t}")
+        plt.axis("off")
+        plt.savefig(f"../{plot_dir}/{checkpoint_file}/{encoding}_{label}_frame{i:02d}.png")
+        plt.close()
     summed = frames.sum(axis=0)
 
     plt.figure()
     plt.imshow(summed[0] + summed[1])
     plt.title("Summed Digit")
-    plt.savefig(f"../{plot_dir}/{checkpoint_file}/{encoding}_summed_digit")
+    plt.savefig(f"../{plot_dir}/{checkpoint_file}/{encoding}_{label}_summed_digit")
 
     print(f"Saving plots to ../{plot_dir}/{checkpoint_file}/")
 
@@ -123,13 +125,13 @@ print("Window = 1000 μs")
 # Create dataloaders
 train_loader = DataLoader(
     train_dataset,
-    batch_size=32,
+    batch_size=batch_size,
     shuffle=True
 )
 
 test_loader = DataLoader(
     test_dataset,
-    batch_size=32,
+    batch_size=batch_size,
     shuffle=False
 )
 

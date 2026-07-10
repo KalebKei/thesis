@@ -5,19 +5,22 @@ from torch.utils.data import DataLoader, random_split
 import numpy as np
 import sys 
 import argparse
+import aedat
 
-import nmnistencodings as encodings
+import cifarencodings as encodings
 
 
 
 ### Command line arguments
 debug = False
 plot = False
+plot_dir = "Plots/CIFAR10DVS"
 encoding = ""
 checkpoint_file = ""
+batch_size = 32
 
 # setup args
-parser = argparse.ArgumentParser(description="Training for NMNIST SNN models.")
+parser = argparse.ArgumentParser(description="Training for CIFAR SNN models.")
 
 parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: voxel grids, 2: DCT, 3: truncated DCT, 4: aggressive DCT")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
@@ -66,6 +69,7 @@ tonic.datasets.cifar10dvs.CIFAR10DVS.url = "https://figshare.com/ndownloader/fil
 # Load the dataset and encode
 raw_dataset = tonic.datasets.CIFAR10DVS(
     save_to="../Datasets/CIFAR10DVS/",
+    transform=transform
 )
 
 train_size = int(0.8 * len(raw_dataset))
@@ -73,6 +77,7 @@ test_size = len(raw_dataset) - train_size
 
 # 3. Randomly split the dataset
 train_dataset, test_dataset = random_split(raw_dataset, [train_size, test_size])
+
 
 # Let's do some debug output
 if(debug): 
@@ -94,20 +99,23 @@ if(debug):
 
 if plot:
     print("Generating images")
-    for t in range(10):
-        plt.figure()
-        plt.imshow(frames[t,0])
+    indices = np.linspace(0, frames.shape[0]-1, 10, dtype=int)
+
+    for i, t in enumerate(indices):
+        plt.figure(figsize=(4,4))
+        plt.imshow(frames[t].sum(axis=0), cmap="gray")
         plt.title(f"Timestep {t}")
-        # plt.show()
-        plt.savefig(f"../Plots/NMNIST/{checkpoint_file}/{encoding}_timestep{t}")
+        plt.axis("off")
+        plt.savefig(f"../{plot_dir}/{checkpoint_file}/{encoding}_{label}_frame{i:02d}.png")
+        plt.close()
     summed = frames.sum(axis=0)
 
     plt.figure()
     plt.imshow(summed[0] + summed[1])
     plt.title("Summed Digit")
-    plt.savefig(f"../Plots/NMNIST/{checkpoint_file}/{encoding}_summed_digit")
+    plt.savefig(f"../{plot_dir}/{checkpoint_file}/{encoding}_{label}_summed_digit")
 
-    print(f"Saving plots to ../Plots/NMNIST/{checkpoint_file}/")
+    print(f"Saving plots to ../{plot_dir}/{checkpoint_file}/")
 
 print(f"Encoding: {encoding}")
 print(f"Shape = {train_dataset[0][0].shape}")
@@ -116,13 +124,13 @@ print("Window = 1000 μs")
 # Create dataloaders
 train_loader = DataLoader(
     train_dataset,
-    batch_size=32,
+    batch_size=batch_size,
     shuffle=True
 )
 
 test_loader = DataLoader(
     test_dataset,
-    batch_size=32,
+    batch_size=batch_size,
     shuffle=False
 )
 

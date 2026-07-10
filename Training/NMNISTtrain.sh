@@ -2,7 +2,7 @@
 
 # paths
 VENV_PATH="../.venv"
-LOG_DIR="../Logs/Training/SNN"
+LOG_DIR="../Logs/NMNIST/Training/SNN"
 
 # activate env
 source "$VENV_PATH/bin/activate"

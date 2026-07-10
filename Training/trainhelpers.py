@@ -170,7 +170,6 @@ def validate(
         "output_fr": val_output_fr
     }
 
-# TODO implement history loading to append for models that are having their training resumed
 def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpoint_dir="ModelCheckpoints/", encoding="spike_train", model_type="snn", history=None, debug=False):
     # call me thomas the way i be trainin
 

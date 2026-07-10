@@ -2,37 +2,37 @@ import sys
 import argparse
 import os
 import tonic
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 import torch
 import torch.nn as nn
 from pathlib import Path
-
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # yeah the name is def not confusing - trust
 
 # custom funcs
 import trainhelpers as th
-from Models.snn_baseline import SNNModel
+from Models.snn_baseline import SNNModel_CIFAR
 from Models.snn_wavelet import WaveletModel
 
-import Encodings.nmnistencodings as encodings
+import Encodings.cifarencodings as encodings
 
 ### Command line arguments
 debug = False
 plot = False
 epochs = 4
-batch_size = 32
+batch_size = 8
 encoding = ""
 checkpoint_file = ""
 model_type = ""
+checkpoint_dir = "ModelCheckpoints/CIFAR10DVS"
 # setup args
-parser = argparse.ArgumentParser(description="Training for NMNIST SNN models.")
+parser = argparse.ArgumentParser(description="Training for CIFAR10DVS SNN models.")
 
 parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: voxel grids, 2: DCT, 3: truncated DCT, 4: aggressive DCT")
 parser.add_argument("model", type=int, help="Model type for training. 0: traditional snn, 1: front-end 2d haar wavelet snn")
 parser.add_argument("epochs", type=int, default=4, help="Number of epochs for training.")
-parser.add_argument("-bs", "--batch_size", type=int, default=32, help="Batch size for training.")
+parser.add_argument("-bs", "--batch_size", type=int, default=batch_size, help="Batch size for training.")
 parser.add_argument("-mf", "--model_filename", default="", help="Filename for model to continue training. Optional")
 parser.add_argument("-mhf", "--model_hist_filename", default="", help="Filename of the model's history to continue training. Optional")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
@@ -71,7 +71,7 @@ elif(args.encoding == 4):
 if(args.model > 1):
     sys.exit(f"Error, incorrect model type: {args.model}")
 if(args.model == 0):
-    model = SNNModel()
+    model = SNNModel_CIFAR()
     model_type = "SNN"
 elif(args.model == 1):
     model = WaveletModel()
@@ -105,17 +105,22 @@ if(args.plot == True):
 
 # Load the dataset and encode
 
-train_dataset = tonic.datasets.CIFAR10DVS(
+
+tonic.datasets.cifar10dvs.CIFAR10DVS.url = "https://figshare.com/ndownloader/files/38023437"
+
+# Load the dataset and encode
+# Translate to frame or whatever
+raw_dataset = tonic.datasets.CIFAR10DVS(
     save_to="../Datasets/CIFAR10DVS/",
-    train=True,
     transform=transform
 )
 
-test_dataset = tonic.datasets.CIFAR10DVS(
-    save_to="../Datasets/CIFAR10DVS/",
-    train=False,
-    transform=transform
-)
+train_size = int(0.8 * len(raw_dataset))
+test_size = len(raw_dataset) - train_size
+
+# 3. Randomly split the dataset
+train_dataset, test_dataset = random_split(raw_dataset, [train_size, test_size])
+
 
 # Create dataloaders
 train_loader = DataLoader(
@@ -153,10 +158,10 @@ loss_fun = nn.CrossEntropyLoss() # #nofun
 
 optimizer = torch.optim.Adam(
     model.parameters(),
-    lr=1e-3 # i never know what to put this guy at
+    lr=1e-4 # i never know what to put this guy at
 )
 
-history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, checkpoint_dir=f"ModelCheckpoints/NMNIST/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, history=history, debug=debug)
+history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, checkpoint_dir=f"{checkpoint_dir}/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, history=history, debug=debug)
 
 if(plot):
     th.plot_hist(history=history, epochs=epochs)
