@@ -10,6 +10,25 @@ from tqdm import tqdm
 from datetime import datetime
 import matplotlib.pyplot as plt
 import ast
+from pathlib import Path
+
+def match_dir(encoding, model_type="SNN"):
+    checkpoint_file = ""
+
+    if(encoding == "spike_train"): 
+        checkpoint_file = "SpikeTrain"
+    elif(encoding == "voxel_grid"):
+        checkpoint_file = "VoxelGrids"
+    elif(encoding == "dct"):
+        checkpoint_file = "DCT"
+    elif(encoding == "trunc_dct"):
+        checkpoint_file = "TruncatedDCT"
+    elif(encoding == "aggr_dct"):
+        checkpoint_file = "AggressiveDCT"
+    else:
+        print("Invalid encoding type: ", encoding)
+    return f"{model_type}/{checkpoint_file}"
+    
 
 def save_hist(history, filename):
     with open(filename, "w") as f:
@@ -24,6 +43,7 @@ def save_hist(history, filename):
         print(history["layer2_spikes"],file=f)
         print(history["output_spikes"],file=f)
         print(history["encoding"],file=f)
+        print(history["type"],file=f)
 
 
 def load_hist(filename):
@@ -38,7 +58,8 @@ def load_hist(filename):
         "layer1_spikes": [],
         "layer2_spikes": [],
         "output_spikes": [],
-        "encoding": ""
+        "encoding": "",
+        "type": ""
     }
 
     with open(filename, "r") as f:
@@ -63,6 +84,7 @@ def load_hist(filename):
         output_spikes = ast.literal_eval(f.readline().strip())
         history["output_spikes"] = [int(x) for x in output_spikes]
         history["encoding"] = f.readline().strip()
+        history["type"] = f.readline().strip()
 
     return history
 
@@ -170,7 +192,7 @@ def validate(
         "output_fr": val_output_fr
     }
 
-def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpoint_dir="ModelCheckpoints/", encoding="spike_train", model_type="snn", history=None, debug=False):
+def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpoint_dir="ModelCheckpoints/", encoding="spike_train", model_type="SNN", history=None, debug=False):
     # call me thomas the way i be trainin
 
     model.train()
@@ -188,7 +210,8 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
             "layer1_spikes": [],
             "layer2_spikes": [],
             "output_spikes": [],
-            "encoding": encoding
+            "encoding": encoding,
+            "type": model_type
         }
         if(debug):
             print(f'Beginning training on {model_type} model with save location at {checkpoint_dir}')
@@ -290,6 +313,9 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
             print(f"\tLayer2 Fire rate: {epoch_layer2_fr*100:.3f}%")
             print(f"\tOutput Fire rate: {epoch_output_fr*100:.3f}%")
 
+        check_dir = Path(checkpoint_dir)
+        check_dir.mkdir(parents=True, exist_ok=True) # sanity make sure it's there
+
         # save
         checkpoint_path = (
             f"{checkpoint_dir}/"
@@ -325,6 +351,9 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
 def plot_hist(history, epochs, filename_ext = ""):
     now = datetime.now()
     epoch_nums = range(1, epochs+1)
+    
+    plot_path = Path(f"Results/{match_dir(history['encoding'], history['type'])}")
+    plot_path.mkdir(parents=True, exist_ok=True) # sanity check
 
     if(True):
         print(history)
@@ -353,7 +382,7 @@ def plot_hist(history, epochs, filename_ext = ""):
     plt.grid(True)
     # plt.show()
     plt.savefig(
-        f"Results/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_val_acc.png",
+        f"{str(plot_path)}/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_val_acc.png",
         dpi=300,
         bbox_inches="tight"
     )
@@ -374,7 +403,7 @@ def plot_hist(history, epochs, filename_ext = ""):
     plt.grid(True)
     # plt.show()
     plt.savefig(
-        f"Results/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_loss.png",
+        f"{str(plot_path)}/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_loss.png",
         dpi=300,
         bbox_inches="tight"
     )
@@ -412,7 +441,7 @@ def plot_hist(history, epochs, filename_ext = ""):
     plt.grid(True)
     # plt.show()
     plt.savefig(
-        f"Results/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_fr.png",
+        f"{str(plot_path)}/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_fr.png",
         dpi=300,
         bbox_inches="tight"
     )
@@ -447,7 +476,7 @@ def plot_hist(history, epochs, filename_ext = ""):
     plt.legend()
     plt.grid(True)
     plt.savefig(
-        f"Results/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_spike_counts.png",
+        f"{str(plot_path)}/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_spike_counts.png",
         dpi=300,
         bbox_inches="tight"
     )

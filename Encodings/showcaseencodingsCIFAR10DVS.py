@@ -6,6 +6,7 @@ import numpy as np
 import sys 
 import argparse
 import aedat
+from pathlib import Path
 
 import cifarencodings as encodings
 
@@ -61,6 +62,8 @@ if(args.debug == True):
     debug = True
 if(args.plot == True):
     plot = True
+    plot_dir = Path(f"../{plot_dir}/{checkpoint_file}")
+    plot_dir.mkdir(parents=True, exist_ok=True)
 
 # Translate to frame
 
