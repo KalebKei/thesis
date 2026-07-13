@@ -38,29 +38,51 @@ def save_hist(history, filename):
         print(history["val_acc"],file=f)
         print(history["layer1_fr"],file=f)
         print(history["layer2_fr"],file=f)
+        if(history["type"] == "FrontEndWaveletSNN"):
+            print(history["layer3_fr"], file=f)
         print(history["output_fr"],file=f)
         print(history["layer1_spikes"],file=f)
         print(history["layer2_spikes"],file=f)
+        if(history["type"] == "FrontEndWaveletSNN"):
+            print(history["layer3_spikes"], file=f)
         print(history["output_spikes"],file=f)
         print(history["encoding"],file=f)
         print(history["type"],file=f)
 
 
-def load_hist(filename):
-    history = {
-        "train_loss": [],
-        "train_acc": [],
-        "val_loss": [],
-        "val_acc": [],
-        "layer1_fr": [],
-        "layer2_fr": [],
-        "output_fr": [],
-        "layer1_spikes": [],
-        "layer2_spikes": [],
-        "output_spikes": [],
-        "encoding": "",
-        "type": ""
-    }
+def load_hist(filename, model_type):
+    if model_type == "SNN":
+        history = {
+            "train_loss": [],
+            "train_acc": [],
+            "val_loss": [],
+            "val_acc": [],
+            "layer1_fr": [],
+            "layer2_fr": [],
+            "output_fr": [],
+            "layer1_spikes": [],
+            "layer2_spikes": [],
+            "output_spikes": [],
+            "encoding": "",
+            "type": ""
+        }
+    elif model_type == "FrontEndWaveletSNN":
+            history = {
+            "train_loss": [],
+            "train_acc": [],
+            "val_loss": [],
+            "val_acc": [],
+            "layer1_fr": [],
+            "layer2_fr": [],
+            "layer3_fr"
+            "output_fr": [],
+            "layer1_spikes": [],
+            "layer2_spikes": [],
+            "layer3_spikes": [],
+            "output_spikes": [],
+            "encoding": "",
+            "type": ""
+        }
 
     with open(filename, "r") as f:
         train_loss = ast.literal_eval(f.readline().strip())
@@ -75,16 +97,23 @@ def load_hist(filename):
         history["layer1_fr"] = [int(x) for x in layer1_fr]
         layer2_fr = ast.literal_eval(f.readline().strip())
         history["layer2_fr"] = [int(x) for x in layer2_fr]
+        if(model_type == "FrontEndWaveletSNN"):
+            layer3_fr = ast.literal_eval(f.readline().strip())
+            history["layer3_fr"] = [int(x) for x in layer3_fr]
         output_fr = ast.literal_eval(f.readline().strip())
         history["output_fr"] = [int(x) for x in output_fr]
         layer1_spikes = ast.literal_eval(f.readline().strip())
         history["layer1_spikes"] = [int(x) for x in layer1_spikes]
         layer2_spikes = ast.literal_eval(f.readline().strip())
         history["layer2_spikes"] = [int(x) for x in layer2_spikes]
+        if(model_type == "FrontEndWaveletSNN"):
+            layer3_spikes = ast.literal_eval(f.readline().strip())
+            history["layer3_spikes"] = [int(x) for x in layer3_spikes]
         output_spikes = ast.literal_eval(f.readline().strip())
         history["output_spikes"] = [int(x) for x in output_spikes]
         history["encoding"] = f.readline().strip()
-        history["type"] = f.readline().strip()
+        history["type"] = model_type # technically not safe, but some models are already saved without this on the file, just in the name. so must be true to avoid errors
+
 
     return history
 
@@ -199,20 +228,38 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
 
     # plot info
     if history is None:
-        history = {
-            "train_loss": [],
-            "train_acc": [],
-            "val_loss": [],
-            "val_acc": [],
-            "layer1_fr": [],
-            "layer2_fr": [],
-            "output_fr": [],
-            "layer1_spikes": [],
-            "layer2_spikes": [],
-            "output_spikes": [],
-            "encoding": encoding,
-            "type": model_type
-        }
+        if model_type == "SNN":
+            history = {
+                "train_loss": [],
+                "train_acc": [],
+                "val_loss": [],
+                "val_acc": [],
+                "layer1_fr": [],
+                "layer2_fr": [],
+                "output_fr": [],
+                "layer1_spikes": [],
+                "layer2_spikes": [],
+                "output_spikes": [],
+                "encoding": encoding,
+                "type": model_type
+            }
+        elif model_type == "FrontEndWaveletSNN":
+            history = {
+                "train_loss": [],
+                "train_acc": [],
+                "val_loss": [],
+                "val_acc": [],
+                "layer1_fr": [],
+                "layer2_fr": [],
+                "output_fr": [],
+                "layer1_spikes": [],
+                "layer2_spikes": [],
+                "layer3_spikes": [],
+                "output_spikes": [],
+                "encoding": encoding,
+                "type": model_type
+            }
+
         if(debug):
             print(f'Beginning training on {model_type} model with save location at {checkpoint_dir}')
     else:
@@ -232,6 +279,10 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
         running_layer1_spikes = 0
         running_layer2_spikes = 0
         running_output_spikes = 0
+
+        if(model_type == "FrontEndWaveletSNN"):
+            running_layer3_fr = 0.0
+            running_layer3_spikes = 0.0
 
 
         for curr_batch, (frames, labels) in enumerate(tqdm(train_loader, desc=f"Epoch {ep}", leave=False), start=1):
@@ -269,6 +320,10 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
             running_layer1_spikes += stats["layer1sp"].item()
             running_layer2_spikes += stats["layer2sp"].item()
             running_output_spikes += stats["outputsp"].item()
+            
+            if(model_type == "FrontEndWaveletSNN"): # need to get the third layer too if exists
+                running_layer3_fr += stats["layer3fr"].item()
+                running_layer3_spikes += stats["layer3sp"].item()
 
 
             if debug and curr_batch % 100 == 0:
@@ -288,6 +343,11 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
         epoch_layer1_spikes = running_layer1_spikes
         epoch_layer2_spikes = running_layer2_spikes
         epoch_output_spikes = running_output_spikes
+        if(model_type == "FrontEndWaveletSNN"):
+            epoch_layer3_spikes = running_layer3_spikes
+            epoch_layer3_fr = (running_layer3_fr / len(train_loader))
+
+
 
 
         val_metrics = validate(model, test_loader, loss_fun)
@@ -303,6 +363,9 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
         history["layer1_spikes"].append(epoch_layer1_spikes)
         history["layer2_spikes"].append(epoch_layer2_spikes)
         history["output_spikes"].append(epoch_output_spikes)
+        if(model_type == "FrontEndWaveletSNN"):
+            history["layer3_fr"].append(epoch_layer3_fr)
+            history["layer3_spikes"].append(epoch_layer3_spikes)
 
         # print
         if debug:
@@ -311,6 +374,8 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
             print(f"\tAccuracy: {epoch_acc*100:.2f}%")
             print(f"\tLayer1 Fire rate: {epoch_layer1_fr*100:.3f}%")
             print(f"\tLayer2 Fire rate: {epoch_layer2_fr*100:.3f}%")
+            if(model_type == "FrontEndWaveletSNN"):
+                print(f"\tLayer3 Fire rate: {epoch_layer3_fr*100:.3f}%")
             print(f"\tOutput Fire rate: {epoch_output_fr*100:.3f}%")
 
         check_dir = Path(checkpoint_dir)
@@ -425,6 +490,14 @@ def plot_hist(history, epochs, filename_ext = ""):
         linewidth=2,
         label="Layer 2"
     )
+    if(history['type'] == "FrontEndWaveletSNN"):
+        plt.plot(
+            epoch_nums,
+            [x * 100 for x in history["layer3_fr"]],
+            marker='x',
+            linewidth=2,
+            label="Layer 3"
+        )
     plt.plot(
         epoch_nums,
         [x * 100 for x in history["output_fr"]],
@@ -462,6 +535,14 @@ def plot_hist(history, epochs, filename_ext = ""):
         linewidth=2,
         label="Layer 2"
     )
+    if(history['type'] == "FrontEndWaveletSNN"):
+        plt.plot(
+            epoch_nums,
+            history["layer3_spikes"],
+            marker='x',
+            linewidth=2,
+            label="Layer 3"
+        )
     plt.plot(
         epoch_nums,
         history["output_spikes"],
