@@ -110,15 +110,15 @@ if plot:
         plt.imshow(frames[t,0])
         plt.title(f"Timestep {t}")
         # plt.show()
-        plt.savefig(f"../{plot_dir}/{checkpoint_file}/{encoding}_timestep{t}")
+        plt.savefig(f"{plot_dir}/{encoding}_timestep{t}")
     summed = frames.sum(axis=0)
 
     plt.figure()
     plt.imshow(summed[0] + summed[1])
     plt.title("Summed Digit")
-    plt.savefig(f"../{plot_dir}/{checkpoint_file}/{encoding}_summed_digit")
+    plt.savefig(f"{plot_dir}/{encoding}_summed_digit")
 
-    print(f"Saving plots to ../{plot_dir}/{checkpoint_file}/")
+    print(f"Saving plots to {plot_dir}/")
 
 print(f"Encoding: {encoding}")
 print(f"Shape = {train_dataset[0][0].shape}")
