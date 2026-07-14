@@ -148,7 +148,7 @@ validation_metrics = {
     "layer2_fr": [],
     "output_fr": []
 }
-validation_metrics = th.validate(model=model, val_loader=test_loader, loss_fun=loss_fun, debug=debug)
+validation_metrics = th.validate(model=model, val_loader=test_loader, loss_fun=loss_fun, debug=debug, model_type=model_type)
 
 print(f"Validation metrics for model with {epochs} epochs:")
 print("\tLoss: ", validation_metrics["loss"])

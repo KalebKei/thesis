@@ -118,12 +118,7 @@ def load_hist(filename, model_type):
     return history
 
 
-def validate(
-    model,
-    val_loader,
-    loss_fun,
-    debug=False
-):
+def validate(model, val_loader, loss_fun, model_type, debug=False):
 
     model.eval()
 
@@ -134,6 +129,8 @@ def validate(
 
     running_layer1_fr = 0.0
     running_layer2_fr = 0.0
+    if(model_type == "FrontEndWaveletSNN"):
+        running_layer3_fr = 0.0
     running_output_fr = 0.0
 
     with torch.no_grad():
@@ -166,6 +163,8 @@ def validate(
 
             running_layer1_fr += stats["layer1fr"].item()
             running_layer2_fr += stats["layer2fr"].item()
+            if(model_type == "FrontEndWaveletSNN"):
+                running_layer3_fr += stats["layer3fr"].item()
             running_output_fr += stats["outputfr"].item()
 
     val_loss = running_loss / len(val_loader)
@@ -181,6 +180,12 @@ def validate(
         running_layer2_fr /
         len(val_loader)
     )
+
+    if(model_type == "FrontEndWaveletSNN"):
+        val_layer3_fr = (
+            running_layer3_fr /
+            len(val_loader)
+        )
 
     val_output_fr = (
         running_output_fr /
@@ -207,12 +212,25 @@ def validate(
             f"\tLayer2 FR: {val_layer2_fr*100:.3f}%"
         )
 
+        if(model_type == "FrontEndWaveletSNN"):
+            print(
+                f"\tLayer3 FR: {val_layer3_fr*100:.3f}%"
+            )
+
         print(
             f"\tOutput FR: {val_output_fr*100:.3f}%"
         )
 
     model.train()
-
+    if(model_type == "FrontEndWaveletSNN"):
+        return {
+            "loss": val_loss,
+            "acc": val_acc,
+            "layer1_fr": val_layer1_fr,
+            "layer2_fr": val_layer2_fr,
+            "layer3_fr": val_layer3_fr,
+            "output_fr": val_output_fr
+        }
     return {
         "loss": val_loss,
         "acc": val_acc,
@@ -251,6 +269,7 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
                 "val_acc": [],
                 "layer1_fr": [],
                 "layer2_fr": [],
+                "layer3_fr": [],
                 "output_fr": [],
                 "layer1_spikes": [],
                 "layer2_spikes": [],
@@ -350,7 +369,7 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
 
 
 
-        val_metrics = validate(model, test_loader, loss_fun)
+        val_metrics = validate(model, test_loader, loss_fun, model_type=model_type)
 
         # update hist
         history["train_loss"].append(epoch_loss)

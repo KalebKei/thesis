@@ -172,6 +172,10 @@ class WaveletModel(nn.Module):
         batch_size = B
         num_steps = T
         
+        # for architecture purposes
+        layer1_h = H // 2 # Haar transform
+        layer2_h = layer1_h // 2
+        
         # important tools to be used later
         mem1 = self.lif1.init_leaky()
         mem2 = self.lif2.init_leaky()
@@ -182,6 +186,7 @@ class WaveletModel(nn.Module):
         layer1_spikes = 0.0
         layer2_spikes = 0.0
         output_spikes = 0.0
+
 
 
         for step in range(num_steps): # heavy lifting time
@@ -220,8 +225,8 @@ class WaveletModel(nn.Module):
             spike_record.append(spik_out) # helpful tool; for later ts
 
         # rates change now bc the model is a lil diff
-        layer1_fire_rate = layer1_spikes / (batch_size * num_steps * 16 * 17 * 17) # rates are also helpul
-        layer2_fire_rate = layer2_spikes / (batch_size * num_steps * 32 * 8 * 8)
+        layer1_fire_rate = layer1_spikes / (batch_size * num_steps * 16 * layer1_h * layer1_h) # rates are also helpul
+        layer2_fire_rate = layer2_spikes / (batch_size * num_steps * 32 * layer2_h * layer2_h)
         output_fire_rate = output_spikes / (batch_size * num_steps * 10)
 
         return torch.stack(spike_record, dim=0), {
@@ -292,6 +297,11 @@ class WaveletModel_CIFAR(nn.Module):
         # same process but now different var names
         batch_size = B
         num_steps = T
+
+        # for architecture purposes
+        layer1_h = H // 2 # Haar transform
+        layer2_h = layer1_h // 2
+        layer3_h = layer2_h // 2
         
         # important tools to be used later
         mem1 = self.lif1.init_leaky()
@@ -351,9 +361,149 @@ class WaveletModel_CIFAR(nn.Module):
             spike_record.append(spik_out) # helpful tool; for later ts
 
         # rates change now bc the model is a lil diff
-        layer1_fire_rate = layer1_spikes / (batch_size * num_steps * 16 * 64 * 64) # rates are also helpul
-        layer2_fire_rate = layer2_spikes / (batch_size * num_steps * 32 * 32 * 32)
-        layer3_fire_rate = layer3_spikes / (batch_size * num_steps * 64 * 64 * 16)
+        layer1_fire_rate = layer1_spikes / (batch_size * num_steps * 16 * layer1_h * layer1_h) # rates are also helpul
+        layer2_fire_rate = layer2_spikes / (batch_size * num_steps * 32 * layer2_h * layer2_h)
+        layer3_fire_rate = layer3_spikes / (batch_size * num_steps * 64 * layer3_h * layer3_h)
+        output_fire_rate = output_spikes / (batch_size * num_steps * self.num_classes)
+
+        return torch.stack(spike_record, dim=0), {
+            "layer1sp": layer1_spikes, # spikes ts
+            "layer2sp": layer2_spikes,
+            "layer3sp": layer3_spikes,
+            "outputsp": output_spikes,
+            "layer1fr": layer1_fire_rate, # fr here means firing rate, not for real (frfr)
+            "layer2fr": layer2_fire_rate,
+            "layer3fr": layer3_fire_rate,
+            "outputfr": output_fire_rate} # yippie yay yippie
+    
+
+class WaveletModel_Gesture(nn.Module):
+    def __init__(self, num_classes=11, beta=0.9):
+        super().__init__()
+
+        self.num_classes = num_classes
+
+        self.haar = Haar2DTransform() # fixed haar transform
+
+        self.conv1 = nn.Conv2d(
+            in_channels=8,
+            out_channels=16,
+            kernel_size=3,
+            padding=1
+        )
+
+        self.lif1 = snn.Leaky(beta=beta)
+
+        self.pool1 = nn.MaxPool2d(2)
+
+        self.conv2 = nn.Conv2d(
+            in_channels=16,
+            out_channels=32,
+            kernel_size=3,
+            padding=1
+        )
+
+        self.lif2 = snn.Leaky(beta=beta)
+
+        self.pool2 = nn.MaxPool2d(2)
+
+        # no third pool
+        self.conv3 = nn.Conv2d(
+            in_channels=32,
+            out_channels=128,
+            kernel_size=3,
+            padding=1
+        )
+        
+        self.lif3 = snn.Leaky(beta=beta)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1,1))
+
+        self.fc1 = nn.Linear(
+            128,
+            num_classes
+        )
+
+        self.lif_out = snn.Leaky(beta=beta)
+    
+    def forward(self,x):
+        # we can vectorize prior to the stepping through time thanks to packages
+        # batch, num time steps, channels, height, width
+        B, T, C, H, W = x.shape
+        x = x.reshape(B * T, C, H, W)
+        x = self.haar(x)
+        x = x.reshape(B, T, 8, H//2, W//2) # 2 polarities * 4 haar subbands = 8 channels
+
+        # same process but now different var names
+        batch_size = B
+        num_steps = T
+
+        # for architecture purposes
+        layer1_h = H // 2 # Haar transform
+        layer2_h = layer1_h // 2
+        layer3_h = layer2_h // 2
+        
+        # important tools to be used later
+        mem1 = self.lif1.init_leaky()
+        mem2 = self.lif2.init_leaky()
+        mem3 = self.lif3.init_leaky()
+        mem_out = self.lif_out.init_leaky()
+
+        # return values
+        spike_record = []
+        layer1_spikes = 0.0
+        layer2_spikes = 0.0
+        layer3_spikes = 0.0
+        output_spikes = 0.0
+
+
+        for step in range(num_steps): # heavy lifting time
+
+            # start 'er up
+            cur = x[:, step] # (B,C,H,W)
+
+            # first layer
+            cur = self.conv1(cur) 
+            spik1,mem1 = self.lif1(cur, mem1)            
+            # pool 1 layer
+            cur = self.pool1(spik1)
+
+            # second layer
+            cur = self.conv2(cur)
+            spik2,mem2 = self.lif2(cur,mem2)
+            # pool 2 layer
+            cur = self.pool2(spik2)
+
+            # third layer
+            cur = self.conv3(cur)
+            spik3,mem3 = self.lif3(cur, mem3)
+
+            # avg pool
+            cur = self.avgpool(spik3)
+
+            # classifier layer (linear)
+            cur = cur.view(B, -1)
+
+            cur = self.fc1(cur)
+
+            # linearing
+            cur = cur.reshape(batch_size, -1)
+
+            # we out
+            spik_out, mem_out = self.lif_out(cur, mem_out)
+
+            # individual layers let me do math that help good
+            layer1_spikes += spik1.sum()
+            layer2_spikes += spik2.sum()
+            layer3_spikes += spik3.sum()
+            output_spikes += spik_out.sum()
+
+            spike_record.append(spik_out) # helpful tool; for later ts
+
+        # rates change now bc the model is a lil diff
+        layer1_fire_rate = layer1_spikes / (batch_size * num_steps * 16 * layer1_h * layer1_h) # rates are also helpul
+        layer2_fire_rate = layer2_spikes / (batch_size * num_steps * 32 * layer2_h * layer2_h)
+        layer3_fire_rate = layer3_spikes / (batch_size * num_steps * 128 * layer3_h * layer3_h)
         output_fire_rate = output_spikes / (batch_size * num_steps * self.num_classes)
 
         return torch.stack(spike_record, dim=0), {

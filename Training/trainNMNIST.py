@@ -132,6 +132,8 @@ test_loader = DataLoader(
 
 
 if(debug):
+    print(f"Model {model_type} architecture:\n", model, "\n")
+
     print("Testing one forward pass of model")
     frames, labels = next(iter(train_loader))
 
@@ -144,6 +146,8 @@ if(debug):
     print(f"\tOutput: {output.shape}")
     print("\tFirst layer firing rate:", spikes_count["layer1fr"].item()*100, '%')
     print("\tSecond layer firing rate:", spikes_count["layer2fr"].item()*100, '%')
+    if(model_type == "FrontEndWaveletSNN"):
+        print("\tThird layer firing rate:", spikes_count["layer3fr"].item()*100, '%')
     print("\tOutput layer firing rate:", spikes_count["outputfr"].item()*100, '%')
 
 

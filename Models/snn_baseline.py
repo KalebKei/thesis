@@ -229,3 +229,135 @@ class SNNModel_CIFAR(nn.Module):
             "layer3fr": layer3_fr,
             "outputfr": output_fr,
         }
+    
+
+class SNNModel_Gesture(nn.Module):
+    def __init__(self, num_classes=11, beta=0.9):
+        super().__init__()
+
+        self.num_classes = num_classes
+        self.conv1 = nn.Conv2d( # upgrades people upgrades
+            2, 16,
+            kernel_size=3,
+            padding=1
+        )
+        self.lif1 = snn.Leaky(beta=beta)
+        self.pool1 = nn.MaxPool2d(2)
+
+
+        self.conv2 = nn.Conv2d(
+            16, 32,
+            kernel_size=3,
+            padding=1
+        )
+        self.lif2 = snn.Leaky(beta=beta)
+        self.pool2 = nn.MaxPool2d(2)
+
+
+        self.conv3 = nn.Conv2d(
+            32, 64,
+            kernel_size=3,
+            padding=1
+        )
+        self.lif3 = snn.Leaky(beta=beta)
+        self.pool3 = nn.MaxPool2d(2)
+
+
+        # 16x16 -> 1x1
+        self.avgpool = nn.AdaptiveAvgPool2d((1,1))
+
+
+        self.fc = nn.Linear(
+            64,
+            num_classes
+        )
+
+        self.lif_out = snn.Leaky(beta=beta)
+
+    def forward(self,x):
+        # enough said
+        batch_size = x.size(0)
+        num_steps = x.size(1)
+
+        # leaky
+        mem1 = self.lif1.init_leaky()
+        mem2 = self.lif2.init_leaky()
+        mem3 = self.lif3.init_leaky()
+        mem_out = self.lif_out.init_leaky()
+
+
+        # for comparison purposes
+        spike_record=[]
+        layer1_spikes=0
+        layer2_spikes=0
+        layer3_spikes=0
+        output_spikes=0
+
+        # propogate
+        for step in range(num_steps):
+
+            cur=x[:,step]
+
+            # first
+            cur=self.conv1(cur)
+            spk1,mem1=self.lif1(cur,mem1)
+            cur=self.pool1(spk1)
+
+            # second
+            cur=self.conv2(cur)
+            spk2,mem2=self.lif2(cur,mem2)
+            cur=self.pool2(spk2)
+
+            # third
+            cur=self.conv3(cur)
+            spk3,mem3=self.lif3(cur,mem3)
+            cur=self.pool3(spk3)
+
+            # out
+            cur=self.avgpool(cur)
+            cur=cur.view(batch_size,-1)
+
+            # yay
+            cur=self.fc(cur)
+
+            spk_out,mem_out=self.lif_out(cur,mem_out)
+
+            # record that
+            layer1_spikes += spk1.sum()
+            layer2_spikes += spk2.sum()
+            layer3_spikes += spk3.sum()
+            output_spikes += spk_out.sum()
+
+            # you know how it is
+            spike_record.append(spk_out)
+
+
+        # get firing rates
+        layer1_fr = layer1_spikes / (
+            batch_size*num_steps*16*128*128
+        )
+
+        layer2_fr = layer2_spikes / (
+            batch_size*num_steps*32*64*64
+        )
+
+        layer3_fr = layer3_spikes / (
+            batch_size*num_steps*64*32*32
+        )
+
+        output_fr = output_spikes / (
+            batch_size*num_steps*self.num_classes
+        )
+
+
+        return torch.stack(spike_record), {
+            "layer1sp": layer1_spikes,
+            "layer2sp": layer2_spikes,
+            "layer3sp": layer3_spikes,
+            "outputsp": output_spikes,
+
+            "layer1fr": layer1_fr,
+            "layer2fr": layer2_fr,
+            "layer3fr": layer3_fr,
+            "outputfr": output_fr,
+        }
