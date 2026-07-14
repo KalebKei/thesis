@@ -13,10 +13,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # custom funcs
 import trainhelpers as th
-from Models.snn_baseline import SNNModel
-from Models.snn_wavelet import WaveletModel
+from Models.snn_baseline import SNNModel_CIFAR
+from Models.snn_wavelet import WaveletModel_CIFAR
 
-import Encodings.nmnistencodings as encodings
+import Encodings.cifarencodings as encodings
 
 ### Command line arguments
 debug = False
@@ -34,6 +34,9 @@ parser.add_argument("model_hist_filename", default="", help="Filename of the mod
 parser.add_argument("-bs", "--batch_size", type=int, default=32, help="Batch size used during training model.")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 parser.add_argument("-p", "--plot", action="store_true", help="Enable plotting after training")
+parser.add_argument("-g", "--gpu", action="store_true", help="Enable gpu acceleration")
+
+
 
 # get args
 args = parser.parse_args()
@@ -63,10 +66,10 @@ elif(args.encoding == 4):
 if(args.model > 1):
     sys.exit(f"Error, incorrect model type: {args.model}")
 if(args.model == 0):
-    model = SNNModel()
+    model = SNNModel_CIFAR()
     model_type = "SNN"
 elif(args.model == 1):
-    model = WaveletModel()
+    model = WaveletModel_CIFAR()
     model_type = "FrontEndWaveletSNN"
 
 # Model training continuation
@@ -80,16 +83,20 @@ if(args.model_filename != ""):
 
     checkpoint = torch.load(args.model_filename, map_location=torch.device('cpu'), weights_only=True)
     model.load_state_dict(checkpoint['model_state_dict'])
-    history = th.load_hist(args.model_hist_filename)
-model.eval()
+    history = th.load_hist(args.model_hist_filename, model_type)
 
 # Debug and plotting
 if(args.debug == True):
     debug = True
 if(args.plot == True):
     plot = True
+if(args.gpu == True):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if(debug):
+        print(f"Current training device: {device}")
+    model = model.to(device)
 
-
+model.eval()
 # Load the dataset and encode
 
 tonic.datasets.cifar10dvs.CIFAR10DVS.url = "https://figshare.com/ndownloader/files/38023437"
@@ -153,7 +160,7 @@ validation_metrics = {
     "layer2_fr": [],
     "output_fr": []
 }
-validation_metrics = th.validate(model=model, val_loader=test_loader, loss_fun=loss_fun, debug=debug, model_type=model_type)
+validation_metrics = th.validate(model=model, val_loader=test_loader, loss_fun=loss_fun, debug=debug, model_type=model_type, device=device)
 
 print(f"Validation metrics for model with {epochs} epochs:")
 print("\tLoss: ", validation_metrics["loss"])

@@ -118,7 +118,7 @@ def load_hist(filename, model_type):
     return history
 
 
-def validate(model, val_loader, loss_fun, model_type, debug=False):
+def validate(model, val_loader, loss_fun, model_type, device, debug=False):
 
     model.eval()
 
@@ -140,6 +140,8 @@ def validate(model, val_loader, loss_fun, model_type, debug=False):
             desc="Validation",
             leave=False
         ):
+            frames.to(device)
+            labels.to(device)
 
             frames = frames.float()
 
@@ -239,7 +241,7 @@ def validate(model, val_loader, loss_fun, model_type, debug=False):
         "output_fr": val_output_fr
     }
 
-def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpoint_dir="ModelCheckpoints/", encoding="spike_train", model_type="SNN", history=None, debug=False):
+def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, device, checkpoint_dir="ModelCheckpoints/", encoding="spike_train", model_type="SNN", history=None, debug=False):
     # call me thomas the way i be trainin
 
     model.train()
@@ -305,6 +307,8 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, checkpo
 
 
         for curr_batch, (frames, labels) in enumerate(tqdm(train_loader, desc=f"Epoch {ep}", leave=False), start=1):
+            frames = frames.to(device)
+            labels = labels.to(device)
             # get batch frames
             frames = frames.float()
 

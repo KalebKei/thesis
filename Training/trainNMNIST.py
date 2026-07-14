@@ -37,6 +37,7 @@ parser.add_argument("-mf", "--model_filename", default="", help="Filename for mo
 parser.add_argument("-mhf", "--model_hist_filename", default="", help="Filename of the model's history to continue training. Optional")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 parser.add_argument("-p", "--plot", action="store_true", help="Enable plotting after training")
+parser.add_argument("-g", "--gpu", action="store_true", help="Enable gpu acceleration")
 
 # get args
 args = parser.parse_args()
@@ -101,6 +102,12 @@ if(args.debug == True):
     debug = True
 if(args.plot == True):
     plot = True
+if(args.gpu == True):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if(debug):
+        print(f"Current training device: {device}")
+    model = model.to(device)
+    
 
 
 # Load the dataset and encode
@@ -160,7 +167,7 @@ optimizer = torch.optim.Adam(
     lr=1e-3 # i never know what to put this guy at
 )
 
-history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, checkpoint_dir=f"ModelCheckpoints/NMNIST/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, history=history, debug=debug)
+history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/NMNIST/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, history=history, debug=debug)
 
 if(plot):
     th.plot_hist(history=history, epochs=epochs)

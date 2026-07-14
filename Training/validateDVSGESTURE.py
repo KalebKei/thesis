@@ -2,7 +2,7 @@ import sys
 import argparse
 import os
 import tonic
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 import torch
 import torch.nn as nn
 from pathlib import Path
@@ -13,10 +13,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # custom funcs
 import trainhelpers as th
-from Models.snn_baseline import SNNModel
-from Models.snn_wavelet import WaveletModel
+from Models.snn_baseline import SNNModel_Gesture
+from Models.snn_wavelet import WaveletModel_Gesture
 
-import Encodings.nmnistencodings as encodings
+import Encodings.gestureencodings as encodings
 
 ### Command line arguments
 debug = False
@@ -35,6 +35,7 @@ parser.add_argument("-bs", "--batch_size", type=int, default=32, help="Batch siz
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 parser.add_argument("-p", "--plot", action="store_true", help="Enable plotting after training")
 parser.add_argument("-g", "--gpu", action="store_true", help="Enable gpu acceleration")
+
 
 
 # get args
@@ -65,10 +66,10 @@ elif(args.encoding == 4):
 if(args.model > 1):
     sys.exit(f"Error, incorrect model type: {args.model}")
 if(args.model == 0):
-    model = SNNModel()
+    model = SNNModel_Gesture()
     model_type = "SNN"
 elif(args.model == 1):
-    model = WaveletModel()
+    model = WaveletModel_Gesture()
     model_type = "FrontEndWaveletSNN"
 
 # Model training continuation
@@ -84,7 +85,6 @@ if(args.model_filename != ""):
     model.load_state_dict(checkpoint['model_state_dict'])
     history = th.load_hist(args.model_hist_filename, model_type)
 
-
 # Debug and plotting
 if(args.debug == True):
     debug = True
@@ -96,23 +96,25 @@ if(args.gpu == True):
         print(f"Current training device: {device}")
     model = model.to(device)
 
-
 model.eval()
+# Load the dataset and encode
 
+tonic.datasets.cifar10dvs.CIFAR10DVS.url = "https://figshare.com/ndownloader/files/38023437"
 
 # Load the dataset and encode
 
-train_dataset = tonic.datasets.NMNIST(
-    save_to="../Datasets/NMNIST/",
+train_dataset = tonic.datasets.DVSGesture(
+    save_to="../Datasets/DVSGESTURE/",
     train=True,
     transform=transform
 )
 
-test_dataset = tonic.datasets.NMNIST(
-    save_to="../Datasets/NMNIST/",
+test_dataset = tonic.datasets.DVSGesture(
+    save_to="../Datasets/DVSGESTURE/",
     train=False,
     transform=transform
 )
+
 
 # Create dataloaders
 train_loader = DataLoader(
@@ -126,6 +128,7 @@ test_loader = DataLoader(
     batch_size=batch_size,
     shuffle=False
 )
+
 
 # update epochs based on hist
 epochs = len(history["layer1_fr"])
