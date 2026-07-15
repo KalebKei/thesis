@@ -371,8 +371,6 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, device,
             epoch_layer3_fr = (running_layer3_fr / len(train_loader))
 
 
-
-
         val_metrics = validate(model, test_loader, loss_fun, model_type=model_type)
 
         # update hist
