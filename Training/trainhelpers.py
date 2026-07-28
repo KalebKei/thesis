@@ -121,6 +121,7 @@ def load_hist(filename, model_type):
 def validate(model, val_loader, loss_fun, model_type, device, debug=False):
 
     model.eval()
+    model.to(device)
 
     running_loss = 0.0
 
@@ -245,6 +246,7 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, device,
     # call me thomas the way i be trainin
 
     model.train()
+    model.to(device)
 
     # plot info
     if history is None:
@@ -371,7 +373,7 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, device,
             epoch_layer3_fr = (running_layer3_fr / len(train_loader))
 
 
-        val_metrics = validate(model, test_loader, loss_fun, model_type=model_type)
+        val_metrics = validate(model, test_loader, loss_fun, model_type=model_type, device=device)
 
         # update hist
         history["train_loss"].append(epoch_loss)

@@ -150,7 +150,7 @@ if(debug):
     frames, labels = next(iter(train_loader))
 
     print(f"Input: {frames.shape}")
-    frames = frames.float()
+    frames = frames.float().to(device)
 
     output, spikes_count = model(frames)
 
