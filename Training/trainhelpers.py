@@ -141,10 +141,8 @@ def validate(model, val_loader, loss_fun, model_type, device, debug=False):
             desc="Validation",
             leave=False
         ):
-            frames.to(device)
-            labels.to(device)
-
-            frames = frames.float()
+            frames = frames.float().to(device)
+            labels = labels.to(device)
 
             spikes, stats = model(frames)
 
