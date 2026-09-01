@@ -102,11 +102,16 @@ if(args.debug == True):
     debug = True
 if(args.plot == True):
     plot = True
+device = torch.device("cpu")
 if(args.gpu == True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if(debug):
         print(f"Current training device: {device}")
     model = model.to(device)
+
+if(debug):
+    print(f"Arguments including:\n\tencoding: {encoding}\n\tmodel type: {model_type}\n\tepochs and batch size: {epochs} {batch_size}")
+    print(f"\tcontinued training: {history}\n\tdebug and plot: {debug} {plot}\n\ton device: {device}\n")
     
 
 
@@ -145,7 +150,7 @@ if(debug):
     frames, labels = next(iter(train_loader))
 
     print(f"Input: {frames.shape}")
-    frames = frames.float()
+    frames = frames.float().to(device)
 
     output, spikes_count = model(frames)
 
@@ -153,8 +158,8 @@ if(debug):
     print(f"\tOutput: {output.shape}")
     print("\tFirst layer firing rate:", spikes_count["layer1fr"].item()*100, '%')
     print("\tSecond layer firing rate:", spikes_count["layer2fr"].item()*100, '%')
-    if(model_type == "FrontEndWaveletSNN"):
-        print("\tThird layer firing rate:", spikes_count["layer3fr"].item()*100, '%')
+    # if(model_type == "FrontEndWaveletSNN"): # only for CIFAR 
+    #     print("\tThird layer firing rate:", spikes_count["layer3fr"].item()*100, '%')
     print("\tOutput layer firing rate:", spikes_count["outputfr"].item()*100, '%')
 
 
@@ -167,7 +172,7 @@ optimizer = torch.optim.Adam(
     lr=1e-3 # i never know what to put this guy at
 )
 
-history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/NMNIST/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, history=history, debug=debug)
+history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/NMNIST/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, dataset= "NMNIST", history=history, debug=debug)
 
 if(plot):
     th.plot_hist(history=history, epochs=epochs)

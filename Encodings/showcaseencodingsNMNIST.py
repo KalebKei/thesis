@@ -70,19 +70,22 @@ if(args.plot == True):
 # Load the dataset and encode
 raw_dataset = tonic.datasets.NMNIST(
     save_to="../Datasets/NMNIST/",
-    train=True
+    train=True,
+    target_transform=int
 )
 
 train_dataset = tonic.datasets.NMNIST(
     save_to="../Datasets/NMNIST/",
     train=True,
-    transform=transform
+    transform=transform,
+    target_transform=int
 )
 
 test_dataset = tonic.datasets.NMNIST(
     save_to="../Datasets/NMNIST/",
     train=False,
-    transform=transform
+    transform=transform,
+    target_transform=int
 )
 
 # Let's do some debug output

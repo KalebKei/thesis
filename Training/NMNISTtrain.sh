@@ -1,15 +1,27 @@
 #!/bin/bash
 
-# paths
-VENV_PATH="../.venv"
+# Conda environment name
+CONDA_ENV="thesis"
+
+# Paths
 LOG_DIR="../Logs/NMNIST/Training/SNN"
 
-# activate env
-source "$VENV_PATH/bin/activate"
+# Create log directory if it does not exist 
+mkdir -p "$LOG_DIR"
 
-# encodings
+# Initialize Conda for this non-interactive shell
+source "$(conda info --base)/etc/profile.d/conda.sh"
+
+# Activate Conda environment
+conda activate "$CONDA_ENV"
+
+# Encodings
 for i in {0..4}; do
     ENCDATESTAMP=$(date +"%m%d%y")
     ENCTIMESTAMP=$(date +"%H%M")
-    python trainNMNIST.py $i 0 4 -d > "$LOG_DIR/Full_${ENCDATESTAMP}_${ENCTIMESTAMP}.log" 2> "$LOG_DIR/Full_${ENCDATESTAMP}_${ENCTIMESTAMP}.err"
+
+    python trainNMNIST.py "$i" 0 4 -d -g \
+        > "$LOG_DIR/${ENCDATESTAMP}_${ENCTIMESTAMP}_full_${i}.log" \
+        2> "$LOG_DIR/${ENCDATESTAMP}_${ENCTIMESTAMP}_full_${i}.err"
 done
+

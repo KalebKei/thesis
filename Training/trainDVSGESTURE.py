@@ -168,7 +168,7 @@ optimizer = torch.optim.Adam(
     lr=1e-4 # i never know what to put this guy at
 )
 
-history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/DVSGESTURE/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, history=history, debug=debug)
+history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/DVSGESTURE/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, dataset="DVSGESTURE", history=history, debug=debug)
 
 if(plot):
     th.plot_hist(history=history, epochs=epochs)
