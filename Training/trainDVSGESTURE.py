@@ -103,11 +103,18 @@ if(args.debug == True):
     debug = True
 if(args.plot == True):
     plot = True
+
+device = torch.device("cpu")
 if(args.gpu == True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if(debug):
         print(f"Current training device: {device}")
     model = model.to(device)
+
+
+if(debug):
+    print(f"Arguments including:\n\tencoding: {encoding}\n\tmodel type: {model_type}\n\tepochs and batch size: {epochs} {batch_size}")
+    print(f"\tcontinued training: {history}\n\tdebug and plot: {debug} {plot}\n\ton device: {device}\n")
 
 
 # Load the dataset and encode
@@ -146,7 +153,7 @@ if(debug):
     frames, labels = next(iter(train_loader))
 
     print(f"Input: {frames.shape}")
-    frames = frames.float()
+    frames = frames.float().to(device)
 
     output, spikes_count = model(frames)
 
@@ -154,7 +161,7 @@ if(debug):
     print(f"\tOutput: {output.shape}")
     print("\tFirst layer firing rate:", spikes_count["layer1fr"].item()*100, '%')
     print("\tSecond layer firing rate:", spikes_count["layer2fr"].item()*100, '%')
-    if(model_type == "FrontEndWaveletSNN"):
+    if(model_type == "FrontEndWaveletSNN"): # only for CIFAR
         print("\tThird layer firing rate:", spikes_count["layer3fr"].item()*100, '%')
     print("\tOutput layer firing rate:", spikes_count["outputfr"].item()*100, '%')
 
