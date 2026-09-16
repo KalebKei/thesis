@@ -411,6 +411,7 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, device,
             print(f"\nEpoch {ep} Summary")
             print(f"\tLoss: {epoch_loss:.4f}")
             print(f"\tAccuracy: {epoch_acc*100:.2f}%")
+            print(f"\tValidation Accuracy: {val_metrics['acc']*100:.2f}%")
             print(f"\tLayer1 Fire rate: {epoch_layer1_fr*100:.3f}%")
             print(f"\tLayer2 Fire rate: {epoch_layer2_fr*100:.3f}%")
             if is_model_three(model_type, dataset):

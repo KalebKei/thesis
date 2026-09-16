@@ -94,7 +94,7 @@ if(args.model_filename != ""):
 
     checkpoint = torch.load(args.model_filename, map_location=torch.device('cpu'), weights_only=True)
     model.load_state_dict(checkpoint['model_state_dict'])
-    history = th.load_hist(args.model_hist_filename)
+    history = th.load_hist(args.model_hist_filename, model_type=model_type, dataset="DVSGESTURE")
 else:
     history = None
 
