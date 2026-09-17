@@ -23,6 +23,7 @@ debug = False
 plot = False
 epochs = 4
 batch_size = 8
+validation_percent=0.0
 encoding = ""
 checkpoint_file = ""
 model_type = ""
@@ -33,11 +34,13 @@ parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1:
 parser.add_argument("model", type=int, help="Model type for training. 0: traditional snn, 1: front-end 2d haar wavelet snn")
 parser.add_argument("epochs", type=int, default=4, help="Number of epochs for training.")
 parser.add_argument("-bs", "--batch_size", type=int, default=batch_size, help="Batch size for training.")
+parser.add_argument("-vp", "--val_percent", type=float, default=validation_percent, help="Batch size for training.")
 parser.add_argument("-mf", "--model_filename", default="", help="Filename for model to continue training. Optional")
 parser.add_argument("-mhf", "--model_hist_filename", default="", help="Filename of the model's history to continue training. Optional")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 parser.add_argument("-p", "--plot", action="store_true", help="Enable plotting after training")
 parser.add_argument("-g", "--gpu", action="store_true", help="Enable gpu acceleration")
+
 
 
 # get args
@@ -83,6 +86,11 @@ elif(args.model == 1):
 epochs = args.epochs
 batch_size = args.batch_size
 
+
+# training until validation percentage
+if(args.val_percent != 0.0):
+    validation_percent = args.val_percent
+
 # Model training continuation
 if(args.model_filename != ""):
     file_path = Path(args.model_filename)
@@ -114,7 +122,11 @@ if(args.gpu == True):
 
 if(debug):
     print(f"Arguments including:\n\tencoding: {encoding}\n\tmodel type: {model_type}\n\tepochs and batch size: {epochs} {batch_size}")
-    print(f"\tcontinued training: {history}\n\tdebug and plot: {debug} {plot}\n\ton device: {device}\n")
+    print(f"\tcontinued training: {history}\n\tdebug and plot: {debug} {plot}\n\ton device: {device}")
+    if(validation_percent > 0.0):
+        print(f"\ttraining for at least {epochs} epochs then until model reaches: {validation_percent}")
+    print("") # new line but this way it doesn't space it out
+
 
 
 # Load the dataset and encode
@@ -176,6 +188,11 @@ optimizer = torch.optim.Adam(
 )
 
 history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/DVSGESTURE/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, dataset="DVSGESTURE", history=history, debug=debug)
+while(history["val_acc"][-1] < validation_percent):
+    if(debug):
+        print(f"Model falls below specified argument: {validation_percent} with a validation accuracy of {history['val_acc'][-1]}. Continuing training for {epochs} epochs.")
+    history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/DVSGESTURE/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, dataset="DVSGESTURE", history=history, debug=debug)
+
 
 if(plot):
     th.plot_hist(history=history, epochs=epochs)
