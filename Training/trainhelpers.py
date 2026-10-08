@@ -11,6 +11,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import ast
 from pathlib import Path
+from matplotlib.ticker import MultipleLocator
 
 def match_dir(encoding, model_type="SNN"):
     checkpoint_file = ""
@@ -110,14 +111,14 @@ def load_hist(filename, model_type, dataset):
         val_acc = ast.literal_eval(f.readline().strip())
         history["val_acc"] = [float(x) for x in val_acc]
         layer1_fr = ast.literal_eval(f.readline().strip())
-        history["layer1_fr"] = [int(x) for x in layer1_fr]
+        history["layer1_fr"] = [float(x) for x in layer1_fr]
         layer2_fr = ast.literal_eval(f.readline().strip())
-        history["layer2_fr"] = [int(x) for x in layer2_fr]
+        history["layer2_fr"] = [float(x) for x in layer2_fr]
         if is_model_three(model_type, dataset):
             layer3_fr = ast.literal_eval(f.readline().strip())
-            history["layer3_fr"] = [int(x) for x in layer3_fr]
+            history["layer3_fr"] = [float(x) for x in layer3_fr]
         output_fr = ast.literal_eval(f.readline().strip())
-        history["output_fr"] = [int(x) for x in output_fr]
+        history["output_fr"] = [float(x) for x in output_fr]
         layer1_spikes = ast.literal_eval(f.readline().strip())
         history["layer1_spikes"] = [int(x) for x in layer1_spikes]
         layer2_spikes = ast.literal_eval(f.readline().strip())
@@ -446,21 +447,21 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, device,
             f"{datetime.now():%Y%m%d_%H%M%S}_hist_"
             f"checkpoint_epoch_{len(history['train_loss'])}.pt"
         )
-        print(f"Saving history to {hist_path}") # debug
+        print(f"Saving history to {hist_path} with current validation accuracy of {val_metrics['acc']*100:.2f}%") # debug
         save_hist(history=history, filename=hist_path)
 
 
     # go home
     return history
 
-def plot_hist(history, epochs, filename_ext = ""):
+def plot_hist(history, epochs, filename_ext = "", debug = False):
     now = datetime.now()
     epoch_nums = range(1, epochs+1)
     
-    plot_path = Path(f"Results/{match_dir(history['encoding'], history['type'])}")
+    plot_path = Path(f"../Plots/Training/{match_dir(history['encoding'], history['type'])}")
     plot_path.mkdir(parents=True, exist_ok=True) # sanity check
 
-    if(True):
+    if(debug):
         print(history)
 
     ##### plot val vs train acc
@@ -481,13 +482,14 @@ def plot_hist(history, epochs, filename_ext = ""):
     )
     plt.xticks(list(epoch_nums))
     plt.xlabel("Epoch")
+    plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
     plt.ylabel("Accuracy (%)")
     plt.title("Training vs Validation Accuracy")
     plt.legend()
     plt.grid(True)
     # plt.show()
     plt.savefig(
-        f"{str(plot_path)}/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_val_acc.png",
+        f"{str(plot_path)}/{filename_ext}_{history['encoding']}_val_acc.png",
         dpi=300,
         bbox_inches="tight"
     )
@@ -504,11 +506,12 @@ def plot_hist(history, epochs, filename_ext = ""):
     plt.xticks(list(epoch_nums))
     plt.title("Training Loss")
     plt.xlabel("Epoch")
+    plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
     plt.ylabel("Loss")
     plt.grid(True)
     # plt.show()
     plt.savefig(
-        f"{str(plot_path)}/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_loss.png",
+        f"{str(plot_path)}/{filename_ext}_{history['encoding']}_loss.png",
         dpi=300,
         bbox_inches="tight"
     )
@@ -546,7 +549,8 @@ def plot_hist(history, epochs, filename_ext = ""):
         label="Output"
     )
     plt.xticks(list(epoch_nums))
-    plt.ylim(bottom=0)
+    plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
+    # plt.ylim(bottom=0)
     plt.title("Average Firing Rate by Epoch")
     plt.xlabel("Epoch")
     plt.ylabel("Firing Rate (%)")
@@ -554,7 +558,7 @@ def plot_hist(history, epochs, filename_ext = ""):
     plt.grid(True)
     # plt.show()
     plt.savefig(
-        f"{str(plot_path)}/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_fr.png",
+        f"{str(plot_path)}/{filename_ext}_{history['encoding']}_fr.png",
         dpi=300,
         bbox_inches="tight"
     )
@@ -593,11 +597,12 @@ def plot_hist(history, epochs, filename_ext = ""):
     plt.xticks(list(epoch_nums))
     plt.title("Total Spikes Generated per Epoch")
     plt.xlabel("Epoch")
+    plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
     plt.ylabel("Spike Count")
     plt.legend()
     plt.grid(True)
     plt.savefig(
-        f"{str(plot_path)}/{filename_ext}{now:%Y%m%d_%H%M}_{history['encoding']}_spike_counts.png",
+        f"{str(plot_path)}/{filename_ext}_{history['encoding']}_spike_counts.png",
         dpi=300,
         bbox_inches="tight"
     )

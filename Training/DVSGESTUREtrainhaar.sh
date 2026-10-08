@@ -20,7 +20,7 @@ for i in {0..4}; do
     ENCDATESTAMP=$(date +"%m%d%y")
     ENCTIMESTAMP=$(date +"%H%M")
 
-    python trainDVSGESTURE.py "$i" 1 50 -d -g \
+    python trainDVSGESTURE.py "$i" 1 50 -g -vp 0.90 \
         > "$LOG_DIR/${ENCDATESTAMP}_${ENCTIMESTAMP}_full_${i}.log" \
         2> "$LOG_DIR/${ENCDATESTAMP}_${ENCTIMESTAMP}_full_${i}.err"
 done

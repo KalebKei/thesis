@@ -3,6 +3,7 @@ import numpy as np
 from scipy.fft import dct
 import tonic
 
+sensor_size = (128,128,2) # needed as not defined for this dataset
 
 spiketrain_transform = transforms.Compose([
     transforms.ToFrame(
@@ -16,6 +17,23 @@ voxel_grids_transform = transforms.ToFrame(
     sensor_size=tonic.datasets.DVSGesture.sensor_size,
     n_time_bins=50
 )
+
+class InterpolateVoxelPolarities:
+    def __call__(self, grid):
+        # from tonic output [T, 1, H, W]
+        neg = np.maximum(-grid,0)
+        pos = np.maximum(grid,0)
+
+        # output [T,2,H,W] to match model input
+        return np.concatenate((neg, pos), axis=1).astype(np.float32)
+
+interpolated_voxel_grid_transform = transforms.Compose([
+    transforms.ToVoxelGrid(
+        sensor_size=sensor_size,
+        n_time_bins=50,
+    ),
+    InterpolateVoxelPolarities(),
+])
 
 class DCT:
     def __init__(self, keep_coeffs=None):

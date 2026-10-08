@@ -22,7 +22,9 @@ import Encodings.gestureencodings as encodings
 debug = False
 plot = False
 epochs = 4
-batch_size = 8
+total_epochs = 0
+# batch_size = 8
+batch_size = 40
 validation_percent=0.0
 encoding = ""
 checkpoint_file = ""
@@ -120,12 +122,11 @@ if(args.gpu == True):
     model = model.to(device)
 
 
-if(debug):
-    print(f"Arguments including:\n\tencoding: {encoding}\n\tmodel type: {model_type}\n\tepochs and batch size: {epochs} {batch_size}")
-    print(f"\tcontinued training: {history}\n\tdebug and plot: {debug} {plot}\n\ton device: {device}")
-    if(validation_percent > 0.0):
-        print(f"\ttraining for at least {epochs} epochs then until model reaches: {validation_percent}")
-    print("") # new line but this way it doesn't space it out
+print(f"Arguments including:\n\tencoding: {encoding}\n\tmodel type: {model_type}\n\tepochs and batch size: {epochs} {batch_size}")
+print(f"\tcontinued training: {history}\n\tdebug and plot: {debug} {plot}\n\ton device: {device}")
+if(validation_percent > 0.0):
+    print(f"\ttraining for at least {epochs} epochs then until model reaches: {validation_percent} OR until 500 epochs")
+print("") # new line but this way it doesn't space it out
 
 
 
@@ -188,11 +189,12 @@ optimizer = torch.optim.Adam(
 )
 
 history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/DVSGESTURE/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, dataset="DVSGESTURE", history=history, debug=debug)
-while(history["val_acc"][-1] < validation_percent):
+total_epochs += epochs
+while(history["val_acc"][-1] < validation_percent and total_epochs < 500):
     if(debug):
-        print(f"Model falls below specified argument: {validation_percent} with a validation accuracy of {history['val_acc'][-1]}. Continuing training for {epochs} epochs.")
+        print(f"Model falls below specified argument: {validation_percent} with a validation accuracy of {history['val_acc'][-1]}. Continuing training for {epochs} epochs until we reach maximum of {Total} epochs.")
     history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/DVSGESTURE/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, dataset="DVSGESTURE", history=history, debug=debug)
-
+    total_epochs += epochs
 
 if(plot):
     th.plot_hist(history=history, epochs=epochs)

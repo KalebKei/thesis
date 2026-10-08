@@ -22,7 +22,7 @@ import Encodings.gestureencodings as encodings
 debug = False
 plot = False
 encoding = ""
-batch_size = 32
+batch_size = 128
 model_type = ""
 # setup args
 parser = argparse.ArgumentParser(description="Training for NMNIST SNN models.")

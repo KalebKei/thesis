@@ -52,9 +52,13 @@ elif(args.encoding == 3):
     encoding = "trunc_dct"
     checkpoint_file = "TruncatedDCT"
 elif(args.encoding == 4):
-    transform = encodings.aggressive_dct_transform
-    encoding = "aggr_dct"
-    checkpoint_file = "AggressiveDCT"
+    transform = encodings.interpolated_voxel_grid_transform
+    encoding = "interp_voxel_grid"
+    checkpoint_file = "InterpolatedVoxelGrids"
+# elif(args.encoding == 4):
+#     transform = encodings.aggressive_dct_transform
+#     encoding = "aggr_dct"
+#     checkpoint_file = "AggressiveDCT"
 
 # Debug and plotting
 if(args.debug == True):

@@ -58,3 +58,20 @@ aggressive_dct_transform = transforms.Compose([
     ),
     DCT(keep_coeffs=10)
 ])
+
+class InterpolateVoxelPolarities:
+    def __call__(self, grid):
+        # from tonic output [T, 1, H, W]
+        neg = np.maximum(-grid,0)
+        pos = np.maximum(grid,0)
+
+        # output [T,2,H,W] to match model input
+        return np.concatenate((neg, pos), axis=1).astype(np.float32)
+
+interpolated_voxel_grid_transform = transforms.Compose([
+    transforms.ToVoxelGrid(
+        sensor_size=sensor_size,
+        n_time_bins=50,
+    ),
+    InterpolateVoxelPolarities(),
+])

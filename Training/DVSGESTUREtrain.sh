@@ -16,11 +16,11 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$CONDA_ENV"
 
 # Encodings
-for i in {0..4}; do
+for i in {1..4}; do
     ENCDATESTAMP=$(date +"%m%d%y")
     ENCTIMESTAMP=$(date +"%H%M")
 
-    python trainDVSGESTURE.py "$i" 0 50 -d -g \
+    python trainDVSGESTURE.py "$i" 0 50 -g -vp 0.90 \
         > "$LOG_DIR/${ENCDATESTAMP}_${ENCTIMESTAMP}_full_${i}.log" \
         2> "$LOG_DIR/${ENCDATESTAMP}_${ENCTIMESTAMP}_full_${i}.err"
 done
