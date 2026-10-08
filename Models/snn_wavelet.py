@@ -410,7 +410,7 @@ class WaveletModel_Gesture(nn.Module):
         # no third pool
         self.conv3 = nn.Conv2d(
             in_channels=32,
-            out_channels=128,
+            out_channels=64,
             kernel_size=3,
             padding=1
         )
@@ -420,7 +420,7 @@ class WaveletModel_Gesture(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1,1))
 
         self.fc1 = nn.Linear(
-            128,
+            64,
             num_classes
         )
 
