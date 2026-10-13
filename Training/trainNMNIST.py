@@ -15,6 +15,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import trainhelpers as th
 from Models.snn_baseline import SNNModel
 from Models.snn_wavelet import WaveletModel
+from Models.snn_wavelet import Haar2DTransform
+from Models.snn_perceptron import WaveletPerceptronModel
+from Models.compact_3dws_inspired import CompactWSCModel
 
 import Encodings.nmnistencodings as encodings
 
@@ -64,12 +67,16 @@ elif(args.encoding == 3):
     encoding = "trunc_dct"
     checkpoint_file = "TruncatedDCT"
 elif(args.encoding == 4):
-    transform = encodings.aggressive_dct_transform
-    encoding = "aggr_dct"
-    checkpoint_file = "AggressiveDCT"
+    transform = encodings.interpolated_voxel_grid_transform
+    encoding = "interp_voxel_grid"
+    checkpoint_file = "InterpolatedVoxelGrids"
+# elif(args.encoding == 4):
+#     transform = encodings.aggressive_dct_transform
+#     encoding = "aggr_dct"
+#     checkpoint_file = "AggressiveDCT"
 
 # Model type
-if(args.model > 1):
+if(args.model > 3):
     sys.exit(f"Error, incorrect model type: {args.model}")
 if(args.model == 0):
     model = SNNModel()
@@ -77,6 +84,13 @@ if(args.model == 0):
 elif(args.model == 1):
     model = WaveletModel()
     model_type = "FrontEndWaveletSNN"
+elif(args.model == 2):
+    model = WaveletPerceptronModel()
+    model_type = "FrontEndWaveletPerceptronSNN"
+else:
+    model = CompactWSCModel(Haar2DTransform, num_classes=10)
+    model_type = "CompactWSCModel"
+
 
 # Epochs and batch size
 epochs = args.epochs

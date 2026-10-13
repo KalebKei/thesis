@@ -70,7 +70,7 @@ class InterpolateVoxelPolarities:
 
 interpolated_voxel_grid_transform = transforms.Compose([
     transforms.ToVoxelGrid(
-        sensor_size=sensor_size,
+        sensor_size=(34,34,2),
         n_time_bins=50,
     ),
     InterpolateVoxelPolarities(),
