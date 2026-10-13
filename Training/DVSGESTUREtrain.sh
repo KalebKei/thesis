@@ -16,7 +16,7 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$CONDA_ENV"
 
 # Encodings
-for i in {1..4}; do
+for i in {4..4}; do
     ENCDATESTAMP=$(date +"%m%d%y")
     ENCTIMESTAMP=$(date +"%H%M")
 
