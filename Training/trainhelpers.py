@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import ast
 from pathlib import Path
 from matplotlib.ticker import MultipleLocator
+import numpy as np
 
 def match_dir(encoding, model_type="SNN"):
     checkpoint_file = ""
@@ -484,6 +485,8 @@ def plot_hist(history, epochs, filename_ext = "", debug = False):
     plt.xlabel("Epoch")
     plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
     plt.ylabel("Accuracy (%)")
+    plt.ylim(0, 100) 
+    plt.yticks(np.arange(0, 101, 10))
     plt.title("Training vs Validation Accuracy")
     plt.legend()
     plt.grid(True)
@@ -508,6 +511,8 @@ def plot_hist(history, epochs, filename_ext = "", debug = False):
     plt.xlabel("Epoch")
     plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
     plt.ylabel("Loss")
+    plt.ylim(0,2.5)
+    plt.yticks(np.arange(0, 2.6, 0.25))
     plt.grid(True)
     # plt.show()
     plt.savefig(

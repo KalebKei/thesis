@@ -83,12 +83,12 @@ test_dataset = tonic.datasets.DVSGesture(
     transform=transform
 )
 
+frames, label = train_dataset[0]
 
 # Let's do some debug output
 if(debug): 
 
     print("Dataset information")
-    frames, label = train_dataset[0]
     print("dtype:", frames.dtype)
     print("shape:", frames.shape)
     print("min:", frames.min())
@@ -117,10 +117,14 @@ if plot:
 
     plt.figure()
     plt.imshow(summed[0] + summed[1])
-    plt.title("Summed Digit")
-    plt.savefig(f"{plot_dir}/{encoding}_{label}_summed_digit")
+    plt.title("Summed Sample")
+    plt.savefig(f"{plot_dir}/{encoding}_{label}_summed_sample")
 
     print(f"Saving plots to {plot_dir}/")
+    if(debug):
+        float_list = (summed[0] + summed[1]).tolist()
+        int_list = [[int(x) for x in row] for row in float_list]
+        print(int_list)
 
 print(f"Encoding: {encoding}")
 print(f"Shape = {train_dataset[0][0].shape}")
@@ -148,3 +152,4 @@ if(debug):
     print(f"\tFrame dtype: {frames.dtype}")
     print(f"\tFrame min: {frames.min()}")
     print(f"\tFrame max: {frames.max()}")
+

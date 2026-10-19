@@ -15,6 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import trainhelpers as th
 from Models.snn_baseline import SNNModel_Gesture
 from Models.snn_wavelet import WaveletModel_Gesture
+from Models.snn_perceptron import WaveletPerceptronModel_Gesture
 
 import Encodings.gestureencodings as encodings
 
@@ -79,7 +80,7 @@ elif(args.encoding == 4):
 #     checkpoint_file = "AggressiveDCT"
 
 # Model type
-if(args.model > 1):
+if(args.model > 3):
     sys.exit(f"Error, incorrect model type: {args.model}")
 if(args.model == 0):
     model = SNNModel_Gesture()
@@ -87,6 +88,11 @@ if(args.model == 0):
 elif(args.model == 1):
     model = WaveletModel_Gesture()
     model_type = "FrontEndWaveletSNN"
+elif(args.model == 2):
+    # TODO
+    print("not yet")
+else:
+
 
 # Epochs and batch size
 epochs = args.epochs

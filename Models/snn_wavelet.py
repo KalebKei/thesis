@@ -503,7 +503,7 @@ class WaveletModel_Gesture(nn.Module):
         # rates change now bc the model is a lil diff
         layer1_fire_rate = layer1_spikes / (batch_size * num_steps * 16 * layer1_h * layer1_h) # rates are also helpul
         layer2_fire_rate = layer2_spikes / (batch_size * num_steps * 32 * layer2_h * layer2_h)
-        layer3_fire_rate = layer3_spikes / (batch_size * num_steps * 128 * layer3_h * layer3_h)
+        layer3_fire_rate = layer3_spikes / (batch_size * num_steps * 64 * layer3_h * layer3_h)
         output_fire_rate = output_spikes / (batch_size * num_steps * self.num_classes)
 
         return torch.stack(spike_record, dim=0), {

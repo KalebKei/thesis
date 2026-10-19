@@ -89,10 +89,10 @@ test_dataset = tonic.datasets.NMNIST(
 )
 
 # Let's do some debug output
+frames, label = train_dataset[0]
 if(debug): 
 
     print("Dataset information")
-    frames, label = train_dataset[0]
     print("dtype:", frames.dtype)
     print("shape:", frames.shape)
     print("min:", frames.min())
