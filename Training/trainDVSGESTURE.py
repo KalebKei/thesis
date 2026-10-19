@@ -16,6 +16,8 @@ import trainhelpers as th
 from Models.snn_baseline import SNNModel_Gesture
 from Models.snn_wavelet import WaveletModel_Gesture
 from Models.snn_perceptron import WaveletPerceptronModel_Gesture
+from Models.snn_wavelet_integrated import IntegratedWaveletBlockModel_Gesture
+
 
 import Encodings.gestureencodings as encodings
 
@@ -92,7 +94,8 @@ elif(args.model == 2):
     # TODO
     print("not yet")
 else:
-
+    model = IntegratedWaveletBlockModel_Gesture()
+    model_type = "IntegratedWaveletSNN"
 
 # Epochs and batch size
 epochs = args.epochs

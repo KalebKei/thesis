@@ -17,7 +17,7 @@ from Models.snn_baseline import SNNModel
 from Models.snn_wavelet import WaveletModel
 from Models.snn_wavelet import Haar2DTransform
 from Models.snn_perceptron import WaveletPerceptronModel
-from Models.compact_3dws_inspired import CompactWSCModel
+from Models.snn_wavelet_integrated import IntegratedWaveletBlockModel
 
 import Encodings.nmnistencodings as encodings
 
@@ -88,8 +88,8 @@ elif(args.model == 2):
     model = WaveletPerceptronModel()
     model_type = "FrontEndWaveletPerceptronSNN"
 else:
-    model = CompactWSCModel(Haar2DTransform, num_classes=10)
-    model_type = "CompactWSCModel"
+    model = IntegratedWaveletBlockModel()
+    model_type = "IntegratedWaveletSNN"
 
 
 # Epochs and batch size
