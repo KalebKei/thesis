@@ -1,6 +1,7 @@
 import math
 import torch
 from torch import nn
+import snntorch as snn
 import torch.nn.functional as F
 from Models.snn_wavelet import Haar2DTransform
 
@@ -38,6 +39,23 @@ class LIFNeuron(nn.Module):
             spike_sequence.append(spikes)
         return torch.stack(spike_sequence, dim=1)
 
+class LeakyReadout(nn.Module):
+
+    def __init__(self, beta=0.9):
+        super().__init__()
+        self.neuron = snn.Leaky(beta=beta)
+
+    def forward(self, currents):
+        membrane = self.neuron.init_leaky()
+        spike_sequence = []
+
+        for step in range(currents.shape[1]):
+            spikes, membrane = self.neuron(
+                currents[:, step], membrane
+            )
+            spike_sequence.append(spikes)
+
+        return torch.stack(spike_sequence, dim=1)
 
 def apply_frames(layer, sequence):
     """Apply spatial layers to [B*T,C,H,W]. BN includes all time bins."""
@@ -263,26 +281,28 @@ class IntegratedWaveletBlockModel_Gesture(nn.Module):
         self.lif1 = LIFNeuron(tau)
         self.pool1 = nn.MaxPool2d(2)  # 64 -> 32
 
+        middle_channels = 26
+
         self.conv2 = nn.Conv2d(
-            16, 32,
+            16, middle_channels,
             kernel_size=3, padding=1, bias=False
         )
-        self.bn2 = nn.BatchNorm2d(32)
+        self.bn2 = nn.BatchNorm2d(middle_channels)
         self.lif2 = LIFNeuron(tau)
-        self.pool2 = nn.MaxPool2d(2)  # 32 -> 16
+        self.pool2 = nn.MaxPool2d(2)
 
-        # Convert pooled spikes into continuous currents for the block.
         self.projection_conv = nn.Conv2d(
-            32, 32, kernel_size=1, bias=False
+            middle_channels, middle_channels,
+            kernel_size=1, bias=False
         )
-        self.projection_bn = nn.BatchNorm2d(32)
+        self.projection_bn = nn.BatchNorm2d(middle_channels)
 
-        # Preserves [B, T, 32, 16, 16] for 128x128 input.
-        self.block = WaveletBlock(32, haar_factory, tau)
+        self.block = WaveletBlock(
+            middle_channels, haar_factory, tau
+        )
 
-        # Original Gesture model's third stage; no third max pool.
         self.conv3 = nn.Conv2d(
-            32, 64,
+            middle_channels, 64,
             kernel_size=3, padding=1, bias=False
         )
         self.bn3 = nn.BatchNorm2d(64)
@@ -290,7 +310,7 @@ class IntegratedWaveletBlockModel_Gesture(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc1 = nn.Linear(64, num_classes)
-        self.lif_out = LIFNeuron(tau)
+        self.lif_out = LeakyReadout(beta=0.9)
 
     def forward(self, frames):
         if frames.ndim != 5 or frames.shape[2] != self.in_channels:
