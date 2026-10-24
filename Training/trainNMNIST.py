@@ -25,7 +25,9 @@ import Encodings.nmnistencodings as encodings
 debug = False
 plot = False
 epochs = 4
-batch_size = 32
+total_epochs = 0
+batch_size = 650
+validation_percent=0.0
 encoding = ""
 checkpoint_file = ""
 model_type = ""
@@ -36,6 +38,7 @@ parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1:
 parser.add_argument("model", type=int, help="Model type for training. 0: traditional snn, 1: front-end 2d haar wavelet snn")
 parser.add_argument("epochs", type=int, default=4, help="Number of epochs for training.")
 parser.add_argument("-bs", "--batch_size", type=int, default=batch_size, help="Batch size for training.")
+parser.add_argument("-vp", "--val_percent", type=float, default=validation_percent, help="Batch size for training.")
 parser.add_argument("-mf", "--model_filename", default="", help="Filename for model to continue training. Optional")
 parser.add_argument("-mhf", "--model_hist_filename", default="", help="Filename of the model's history to continue training. Optional")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
@@ -110,6 +113,10 @@ if(args.model_filename != ""):
     history = th.load_hist(args.model_hist_filename)
 else:
     history = None
+
+# training until validation percentage
+if(args.val_percent != 0.0):
+    validation_percent = args.val_percent
 
 # Debug and plotting
 if(args.debug == True):
@@ -187,6 +194,13 @@ optimizer = torch.optim.Adam(
 )
 
 history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/NMNIST/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, dataset= "NMNIST", history=history, debug=debug)
+total_epochs += epochs
+while(history["val_acc"][-1] < validation_percent and total_epochs < 20):
+    if(debug):
+        print(f"Model falls below specified argument: {validation_percent} with a validation accuracy of {history['val_acc'][-1]}. Continuing training for {epochs} epochs until we reach maximum of {Total} epochs.")
+    history = th.train(model=model, train_loader=train_loader, test_loader=test_loader, optimizer=optimizer, loss_fun=loss_fun, epochs=epochs, device=device, checkpoint_dir=f"ModelCheckpoints/NMNIST/{model_type}/{checkpoint_file}", encoding=encoding, model_type=model_type, dataset= "NMNIST", history=history, debug=debug)
+    total_epochs += epochs
+
 
 if(plot):
     th.plot_hist(history=history, epochs=epochs)
