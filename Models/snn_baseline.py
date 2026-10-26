@@ -31,10 +31,13 @@ class SNNModel(nn.Module):
         self.pool2 = nn.MaxPool2d(2) # Pooling; 17x17 -> 8x8
 
         # 34 x 34 -- (pool1) --> 17x17 -- (pool2) --> 8x8
-        self.fc1 = nn.Linear( # map to output
-            32 * 8 * 8,
-            num_classes
-        )
+        # self.fc1 = nn.Linear( # map to output
+        #     32 * 8 * 8,
+        #     num_classes
+        # ) # while this is direct, it also blows up the parameter count.
+
+        self.avgpool = nn.AdaptiveAvgPool2d((4, 4))
+        self.fc1 = nn.Linear(32 * 4 * 4, num_classes)
 
         self.lif_out = snn.Leaky(beta=beta)
     
@@ -71,11 +74,15 @@ class SNNModel(nn.Module):
             # pool 2 layer
             cur = self.pool2(spik2)
 
-            # thirdish layer i think (linear)
-            cur = cur.view(batch_size, -1)
+            # # thirdish layer i think (linear)
+            # cur = cur.view(batch_size, -1)
 
-            # linearing
-            cur = self.fc1(cur)
+            # # linearing
+            # cur = self.fc1(cur)
+
+            cur = self.avgpool(cur) # avg that ho
+            cur = cur.flatten(start_dim=1) # flatten that ho
+            cur = self.fc1(cur) # linearing (but better)
 
             # we out
             spk_out, mem_out = self.lif_out(cur, mem_out)

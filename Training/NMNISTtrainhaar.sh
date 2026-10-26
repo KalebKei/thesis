@@ -20,7 +20,7 @@ for i in {0..4}; do
     ENCDATESTAMP=$(date +"%m%d%y")
     ENCTIMESTAMP=$(date +"%H%M")
 
-    python trainNMNIST.py "$i" 1 4 -d -g \
+    python trainNMNIST.py "$i" 1 10 -g \
         > "$LOG_DIR/${ENCDATESTAMP}_${ENCTIMESTAMP}_full_${i}.log" \
         2> "$LOG_DIR/${ENCDATESTAMP}_${ENCTIMESTAMP}_full_${i}.err"
 done

@@ -63,7 +63,7 @@ match dataset:
 model_type.append("IntegratedWaveletSNN")
 match dataset:
     case "NMNIST":
-        models.append(integrated_wavelet_models.IntegratedWaveletBlockModel_Gesture())
+        models.append(integrated_wavelet_models.IntegratedWaveletBlockModel())
     case "DVSGesture": 
         models.append(integrated_wavelet_models.IntegratedWaveletBlockModel_Gesture())
 
