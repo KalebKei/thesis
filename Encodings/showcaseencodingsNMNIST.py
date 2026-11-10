@@ -1,7 +1,7 @@
 import tonic
 from tonic import transforms
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 import numpy as np
 import sys 
 import argparse
@@ -18,11 +18,12 @@ plot = False
 plot_dir = "Plots/NMNIST"
 encoding = ""
 checkpoint_file = ""
+batch_size = 32
 
 # setup args
-parser = argparse.ArgumentParser(description="Training for NMNIST SNN models.")
+parser = argparse.ArgumentParser(description="Plotting for NMNIST Encodings.")
 
-parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: voxel grids, 2: DCT, 3: truncated DCT, 4: aggressive DCT")
+parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: event bins, 2: DCT, 3: truncated DCT, 4: polarized voxel grids")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 parser.add_argument("-p", "--plot", action="store_true", help="Enable plotting after training")
 
@@ -31,7 +32,6 @@ args = parser.parse_args()
 
 # parse args
 
-# Encodings
 # Encodings
 if(args.encoding > 4):
     sys.exit(f"Error, incorrect encoding type: {args.encoding}")
@@ -42,7 +42,7 @@ if(args.encoding == 0):
 elif(args.encoding == 1):
     transform = encodings.voxel_grids_transform
     encoding = "voxel_grid"
-    checkpoint_file = "VoxelGrids"
+    checkpoint_file = "EventBins"
 elif(args.encoding == 2):
     transform = encodings.dct_transform
     encoding = "dct"
@@ -52,9 +52,13 @@ elif(args.encoding == 3):
     encoding = "trunc_dct"
     checkpoint_file = "TruncatedDCT"
 elif(args.encoding == 4):
-    transform = encodings.aggressive_dct_transform
-    encoding = "aggr_dct"
-    checkpoint_file = "AggressiveDCT"
+    transform = encodings.interpolated_voxel_grid_transform
+    encoding = "interp_voxel_grid"
+    checkpoint_file = "PolarizedVoxelGrids"
+# elif(args.encoding == 4):
+#     transform = encodings.aggressive_dct_transform
+#     encoding = "aggr_dct"
+#     checkpoint_file = "AggressiveDCT"
 
 # Debug and plotting
 if(args.debug == True):
@@ -64,15 +68,8 @@ if(args.plot == True):
     plot_dir = Path(f"../{plot_dir}/{checkpoint_file}")
     plot_dir.mkdir(parents=True, exist_ok=True)
 
-# Translate to frame
-
 
 # Load the dataset and encode
-raw_dataset = tonic.datasets.NMNIST(
-    save_to="../Datasets/NMNIST/",
-    train=True,
-    target_transform=int
-)
 
 train_dataset = tonic.datasets.NMNIST(
     save_to="../Datasets/NMNIST/",
@@ -88,8 +85,10 @@ test_dataset = tonic.datasets.NMNIST(
     target_transform=int
 )
 
-# Let's do some debug output
+
 frames, label = train_dataset[0]
+
+# Let's do some debug output
 if(debug): 
 
     print("Dataset information")
@@ -105,23 +104,50 @@ if(debug):
     print("count:", len(vals))
     
 
-
 if plot:
     print("Generating images")
-    for t in range(10):
-        plt.figure()
-        plt.imshow(frames[t,0])
-        plt.title(f"Timestep {t}")
-        # plt.show()
-        plt.savefig(f"{plot_dir}/{encoding}_timestep{t}")
-    summed = frames.sum(axis=0)
 
-    plt.figure()
-    plt.imshow(summed[0] + summed[1])
-    plt.title("Summed Digit")
-    plt.savefig(f"{plot_dir}/{encoding}_summed_digit")
+    indices = np.linspace(0, frames.shape[0] - 1, 10, dtype=int)
+
+    fig, axes = plt.subplots(
+        2, 5,
+        figsize=(15, 6),
+        constrained_layout=True
+    )
+
+    for i, (ax, t) in enumerate(zip(axes.flat, indices), start=1):
+        ax.imshow(frames[t].sum(axis=0), cmap="gray")
+        ax.set_title(f"Stage {i}\nTimestep {t}")
+        ax.axis("off")
+
+    fig.suptitle(f"{checkpoint_file} — Label {label}")
+    fig.savefig(
+        f"{plot_dir}/{encoding}_{label}_stages.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+    plt.close(fig)
+
+    summed = frames.sum(axis=0)
+    summed_image = summed.sum(axis=0)
+
+    fig, ax = plt.subplots()
+    ax.imshow(summed_image, cmap="gray")
+    ax.set_title("Summed Sample")
+    ax.axis("off")
+
+    fig.savefig(
+        f"{plot_dir}/{encoding}_{label}_summed_sample.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+    plt.close(fig)
 
     print(f"Saving plots to {plot_dir}/")
+
+    if debug:
+        int_list = summed_image.astype(int).tolist()
+        print(int_list)
 
 print(f"Encoding: {encoding}")
 print(f"Shape = {train_dataset[0][0].shape}")
@@ -130,13 +156,13 @@ print("Window = 1000 μs")
 # Create dataloaders
 train_loader = DataLoader(
     train_dataset,
-    batch_size=32,
+    batch_size=batch_size,
     shuffle=True
 )
 
 test_loader = DataLoader(
     test_dataset,
-    batch_size=32,
+    batch_size=batch_size,
     shuffle=False
 )
 
@@ -149,3 +175,4 @@ if(debug):
     print(f"\tFrame dtype: {frames.dtype}")
     print(f"\tFrame min: {frames.min()}")
     print(f"\tFrame max: {frames.max()}")
+

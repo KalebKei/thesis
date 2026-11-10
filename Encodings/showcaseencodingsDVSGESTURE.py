@@ -21,9 +21,9 @@ checkpoint_file = ""
 batch_size = 32
 
 # setup args
-parser = argparse.ArgumentParser(description="Training for DVSGESTURE SNN models.")
+parser = argparse.ArgumentParser(description="Plotting for DVSGESTURE Encodings.")
 
-parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: voxel grids, 2: DCT, 3: truncated DCT, 4: aggressive DCT")
+parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: event bins, 2: DCT, 3: truncated DCT, 4: polarized voxel grids")
 parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 parser.add_argument("-p", "--plot", action="store_true", help="Enable plotting after training")
 
@@ -42,7 +42,7 @@ if(args.encoding == 0):
 elif(args.encoding == 1):
     transform = encodings.voxel_grids_transform
     encoding = "voxel_grid"
-    checkpoint_file = "VoxelGrids"
+    checkpoint_file = "EventBins"
 elif(args.encoding == 2):
     transform = encodings.dct_transform
     encoding = "dct"
@@ -54,7 +54,7 @@ elif(args.encoding == 3):
 elif(args.encoding == 4):
     transform = encodings.interpolated_voxel_grid_transform
     encoding = "interp_voxel_grid"
-    checkpoint_file = "InterpolatedVoxelGrids"
+    checkpoint_file = "PolarizedVoxelGrids"
 # elif(args.encoding == 4):
 #     transform = encodings.aggressive_dct_transform
 #     encoding = "aggr_dct"
@@ -101,29 +101,49 @@ if(debug):
     print("count:", len(vals))
     
 
-
 if plot:
     print("Generating images")
-    indices = np.linspace(0, frames.shape[0]-1, 10, dtype=int)
 
-    for i, t in enumerate(indices):
-        plt.figure(figsize=(4,4))
-        plt.imshow(frames[t].sum(axis=0), cmap="gray")
-        plt.title(f"Timestep {t}")
-        plt.axis("off")
-        plt.savefig(f"{plot_dir}/{encoding}_{label}_frame{i:02d}.png")
-        plt.close()
+    indices = np.linspace(0, frames.shape[0] - 1, 10, dtype=int)
+
+    fig, axes = plt.subplots(
+        2, 5,
+        figsize=(15, 6),
+        constrained_layout=True
+    )
+
+    for i, (ax, t) in enumerate(zip(axes.flat, indices), start=1):
+        ax.imshow(frames[t].sum(axis=0), cmap="gray")
+        ax.set_title(f"Stage {i}\nTimestep {t}")
+        ax.axis("off")
+
+    fig.suptitle(f"{checkpoint_file} — Label {label}")
+    fig.savefig(
+        f"{plot_dir}/{encoding}_{label}_stages.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+    plt.close(fig)
+
     summed = frames.sum(axis=0)
+    summed_image = summed.sum(axis=0)
 
-    plt.figure()
-    plt.imshow(summed[0] + summed[1])
-    plt.title("Summed Sample")
-    plt.savefig(f"{plot_dir}/{encoding}_{label}_summed_sample")
+    fig, ax = plt.subplots()
+    ax.imshow(summed_image, cmap="gray")
+    ax.set_title("Summed Sample")
+    ax.axis("off")
+
+    fig.savefig(
+        f"{plot_dir}/{encoding}_{label}_summed_sample.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+    plt.close(fig)
 
     print(f"Saving plots to {plot_dir}/")
-    if(debug):
-        float_list = (summed[0] + summed[1]).tolist()
-        int_list = [[int(x) for x in row] for row in float_list]
+
+    if debug:
+        int_list = summed_image.astype(int).tolist()
         print(int_list)
 
 print(f"Encoding: {encoding}")

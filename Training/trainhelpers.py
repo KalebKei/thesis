@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import ast
 from pathlib import Path
 from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import MaxNLocator
+
 import numpy as np
 
 def match_dir(encoding, model_type="SNN"):
@@ -27,6 +29,8 @@ def match_dir(encoding, model_type="SNN"):
         checkpoint_file = "TruncatedDCT"
     elif(encoding == "aggr_dct"):
         checkpoint_file = "AggressiveDCT"
+    elif(encoding == "interp_voxel_grid"):
+        checkpoint_file = "InterpolatedVoxelGrids"
     else:
         print("Invalid encoding type: ", encoding)
     return f"{model_type}/{checkpoint_file}"
@@ -455,159 +459,326 @@ def train(model, train_loader, test_loader, optimizer, loss_fun, epochs, device,
     # go home
     return history
 
-def plot_hist(history, epochs, filename_ext = "", debug = False):
-    now = datetime.now()
-    epoch_nums = range(1, epochs+1)
-    
-    plot_path = Path(f"../Plots/Training/{match_dir(history['encoding'], history['type'])}")
-    plot_path.mkdir(parents=True, exist_ok=True) # sanity check
+def plot_hist(history, epochs, dataset, filename_ext="", debug=False):
+    epoch_nums = range(1, epochs + 1)
 
-    if(debug):
+    plot_path = Path(
+        f"../Plots/Training/{dataset}/"
+        f"{match_dir(history['encoding'], history['type'])}"
+    )
+    plot_path.mkdir(parents=True, exist_ok=True)
+
+    if debug:
         print(history)
 
-    ##### plot val vs train acc
-    plt.figure(figsize=(8,5))
-    plt.plot(
-        epoch_nums,
-        [x * 100 for x in history["train_acc"]],
-        marker='o',
-        linewidth=2,
-        label="Train"
-    )
-    plt.plot(
-        epoch_nums,
-        [x * 100 for x in history["val_acc"]],
-        marker='s',
-        linewidth=2,
-        label="Validation"
-    )
-    plt.xticks(list(epoch_nums))
-    plt.xlabel("Epoch")
-    plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
-    plt.ylabel("Accuracy (%)")
-    plt.ylim(0, 100) 
-    plt.yticks(np.arange(0, 101, 10))
-    plt.title("Training vs Validation Accuracy")
-    plt.legend()
-    plt.grid(True)
-    # plt.show()
-    plt.savefig(
-        f"{str(plot_path)}/{filename_ext}_{history['encoding']}_val_acc.png",
-        dpi=300,
-        bbox_inches="tight"
-    )
+    prefix = f"{filename_ext}_{history['encoding']}"
 
-    ##### plot loss
-    plt.figure(figsize=(8,5))
-    plt.plot(
-        epoch_nums,
-        history["train_loss"],
-        marker='o',
-        linewidth=2,
-        label="Train"
-    )
-    plt.xticks(list(epoch_nums))
-    plt.title("Training Loss")
-    plt.xlabel("Epoch")
-    plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
-    plt.ylabel("Loss")
-    plt.ylim(0,2.5)
-    plt.yticks(np.arange(0, 2.6, 0.25))
-    plt.grid(True)
-    # plt.show()
-    plt.savefig(
-        f"{str(plot_path)}/{filename_ext}_{history['encoding']}_loss.png",
-        dpi=300,
-        bbox_inches="tight"
-    )
+    layers = [
+        ("layer1", "Layer 1", "o"),
+        ("layer2", "Layer 2", "s"),
+    ]
 
-    ##### plot fire rates
-    plt.figure(figsize=(8,5))
-
-    plt.plot(
-        epoch_nums,
-        [x * 100 for x in history["layer1_fr"]],
-        marker='o',
-        linewidth=2,
-        label="Layer 1"
-    )
-    plt.plot(
-        epoch_nums,
-        [x * 100 for x in history["layer2_fr"]],
-        marker='s',
-        linewidth=2,
-        label="Layer 2"
-    )
-    if is_model_three(history['type'], history['dataset']):
-        plt.plot(
-            epoch_nums,
-            [x * 100 for x in history["layer3_fr"]],
-            marker='x',
-            linewidth=2,
-            label="Layer 3"
-        )
-    plt.plot(
-        epoch_nums,
-        [x * 100 for x in history["output_fr"]],
-        marker='^',
-        linewidth=2,
-        label="Output"
-    )
-    plt.xticks(list(epoch_nums))
-    plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
-    # plt.ylim(bottom=0)
-    plt.title("Average Firing Rate by Epoch")
-    plt.xlabel("Epoch")
-    plt.ylabel("Firing Rate (%)")
-    plt.legend()
-    plt.grid(True)
-    # plt.show()
-    plt.savefig(
-        f"{str(plot_path)}/{filename_ext}_{history['encoding']}_fr.png",
-        dpi=300,
-        bbox_inches="tight"
-    )
-
-    ##### plot spikes
-    plt.figure(figsize=(8,5))
-    plt.plot(
-        epoch_nums,
-        history["layer1_spikes"],
-        marker='o',
-        linewidth=2,
-        label="Layer 1"
-    )
-    plt.plot(
-        epoch_nums,
-        history["layer2_spikes"],
-        marker='s',
-        linewidth=2,
-        label="Layer 2"
-    )
     if is_model_three(history["type"], history["dataset"]):
-        plt.plot(
-            epoch_nums,
-            history["layer3_spikes"],
-            marker='x',
-            linewidth=2,
-            label="Layer 3"
+        layers.append(("layer3", "Layer 3", "x"))
+
+    layers.append(("output", "Output", "^"))
+
+    def format_axis(ax, title, ylabel):
+        ax.set_title(title)
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel(ylabel)
+        ax.xaxis.set_major_locator(
+            MaxNLocator(nbins=10, integer=True)
         )
-    plt.plot(
-        epoch_nums,
-        history["output_spikes"],
-        marker='^',
-        linewidth=2,
-        label="Output"
+        ax.grid(True)
+
+    def plot_accuracy(ax):
+        ax.plot(
+            epoch_nums,
+            [x * 100 for x in history["train_acc"]],
+            marker="o",
+            linewidth=2,
+            label="Train",
+        )
+        ax.plot(
+            epoch_nums,
+            [x * 100 for x in history["val_acc"]],
+            marker="s",
+            linewidth=2,
+            label="Validation",
+        )
+        format_axis(
+            ax, "Training vs Validation Accuracy", "Accuracy (%)"
+        )
+        ax.set_ylim(0, 100)
+        ax.set_yticks(np.arange(0, 101, 10))
+        ax.legend()
+
+    def plot_loss(ax):
+        ax.plot(
+            epoch_nums,
+            history["train_loss"],
+            marker="o",
+            linewidth=2,
+            label="Train",
+        )
+        format_axis(ax, "Training Loss", "Loss")
+        ax.set_ylim(0, 2.5)
+        ax.set_yticks(np.arange(0, 2.6, 0.25))
+
+    def plot_firing_rates(ax):
+        for key, label, marker in layers:
+            ax.plot(
+                epoch_nums,
+                [x * 100 for x in history[f"{key}_fr"]],
+                marker=marker,
+                linewidth=2,
+                label=label,
+            )
+        format_axis(
+            ax, "Average Firing Rate by Epoch", "Firing Rate (%)"
+        )
+        ax.legend()
+
+    def plot_spikes(ax):
+        for key, label, marker in layers:
+            ax.plot(
+                epoch_nums,
+                history[f"{key}_spikes"],
+                marker=marker,
+                linewidth=2,
+                label=label,
+            )
+        format_axis(
+            ax, "Total Spikes Generated per Epoch", "Spike Count"
+        )
+        ax.legend()
+
+    plots = [
+        ("val_acc", plot_accuracy),
+        ("loss", plot_loss),
+        ("fr", plot_firing_rates),
+        ("spike_counts", plot_spikes),
+    ]
+
+    # Save the four individual plots.
+    for suffix, draw_plot in plots:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        draw_plot(ax)
+        fig.tight_layout()
+        fig.savefig(
+            plot_path / f"{prefix}_{suffix}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
+        plt.close(fig)
+
+    # Save all four plots together in a 2×2 grid.
+    fig, axes = plt.subplots(
+        2, 2, figsize=(16, 10), constrained_layout=True
     )
-    plt.xticks(list(epoch_nums))
-    plt.title("Total Spikes Generated per Epoch")
-    plt.xlabel("Epoch")
-    plt.gca().xaxis.set_major_locator(MultipleLocator(epochs/10))
-    plt.ylabel("Spike Count")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(
-        f"{str(plot_path)}/{filename_ext}_{history['encoding']}_spike_counts.png",
+
+    for ax, (_, draw_plot) in zip(axes.flat, plots):
+        draw_plot(ax)
+
+    fig.savefig(
+        plot_path / f"{prefix}_combined.png",
         dpi=300,
-        bbox_inches="tight"
+        bbox_inches="tight",
     )
+    plt.close(fig)
+
+
+@torch.no_grad()
+def evaluate_early_exit(model, test_loader, device, exit_steps=(10, 20, 30, 50)):
+    exit_steps = sorted(set(exit_steps))
+
+    if not exit_steps or exit_steps[0] < 1:
+        raise ValueError("exit_steps must contain positive integers.")
+
+    model.to(device)
+    was_training = model.training
+    model.eval()
+
+    correct = {step: 0 for step in exit_steps}
+    tied = {step: 0 for step in exit_steps}
+    total = 0
+
+    try:
+        for frames, labels in test_loader:
+            frames = frames.float().to(device)
+            labels = labels.to(device)
+
+            if exit_steps[-1] > frames.size(1):
+                raise ValueError(
+                    f"Requested step {exit_steps[-1]}, but input has "
+                    f"only {frames.size(1)} steps."
+                )
+
+            # Process only through the largest requested stopping point.
+            # Model output: [T, B, num_classes]
+            spikes, _ = model(frames[:, :exit_steps[-1]])
+
+            # Cumulative class spike counts at every step.
+            cumulative_spikes = spikes.cumsum(dim=0)
+
+            for step in exit_steps:
+                scores = cumulative_spikes[step - 1]
+                predictions = scores.argmax(dim=1)
+
+                correct[step] += (
+                    predictions == labels
+                ).sum().item()
+
+                # Count ambiguous predictions, including all-zero outputs.
+                max_scores = scores.max(dim=1, keepdim=True).values
+                tied[step] += (
+                    (scores == max_scores).sum(dim=1) > 1
+                ).sum().item()
+
+            total += labels.size(0)
+
+    finally:
+        model.train(was_training)
+
+    if total == 0:
+        raise ValueError("test_loader contains no samples.")
+
+    results = {}
+
+    for step in exit_steps:
+        results[step] = {
+            "accuracy": 100.0 * correct[step] / total,
+            "tie_rate": 100.0 * tied[step] / total,
+            "samples": total,
+        }
+
+        print(
+            f"Step {step:>2}: "
+            f"accuracy = {results[step]['accuracy']:.2f}% | "
+            f"tied predictions = {results[step]['tie_rate']:.2f}%"
+        )
+
+    return results
+
+def plot_early_exit(results, history, filename_ext="", debug=False):
+    if not results:
+        raise ValueError("results contains no early-exit statistics.")
+
+    if(debug):
+        print("Printing early exit plots")
+    steps = sorted(results)
+    accuracies = [results[step]["accuracy"] for step in steps]
+    tie_rates = [results[step]["tie_rate"] for step in steps]
+
+    dataset = history["dataset"]
+    model_type = history["type"]
+    encoding = history["encoding"]
+
+    plot_path = (
+        Path("../Plots/EarlyExit")
+        / str(dataset)
+        / match_dir(encoding, model_type)
+    )
+    plot_path.mkdir(parents=True, exist_ok=True)
+
+    if debug:
+        print(
+            f"Dataset: {dataset}\n"
+            f"Model: {model_type}\n"
+            f"Encoding: {encoding}\n"
+            f"Results: {results}\n"
+            f"Plot path: {plot_path}"
+        )
+
+    # Include all configuration identifiers to distinguish saved figures.
+    prefix = "_".join(
+        str(value)
+        for value in (filename_ext, dataset, model_type, encoding)
+        if value != ""
+    )
+
+    title = f"{dataset} | {model_type} | {encoding}"
+
+    def format_axis(ax, plot_title, ylabel):
+        ax.set_title(plot_title)
+        ax.set_xlabel("Inference Timesteps")
+        ax.set_ylabel(ylabel)
+        ax.set_xticks(steps)
+        ax.set_ylim(0, 100)
+        ax.set_yticks(np.arange(0, 101, 10))
+        ax.grid(True, alpha=0.3)
+
+    def plot_accuracy(ax):
+        ax.plot(
+            steps,
+            accuracies,
+            marker="o",
+            linewidth=2,
+            label="Accuracy",
+        )
+        ax.axhline(
+            accuracies[-1],
+            color="gray",
+            linestyle="--",
+            label=f"{steps[-1]}-step reference",
+        )
+        format_axis(
+            ax,
+            "Accuracy by Stopping Timestep",
+            "Accuracy (%)",
+        )
+        ax.legend()
+
+    def plot_tie_rate(ax):
+        ax.plot(
+            steps,
+            tie_rates,
+            marker="s",
+            linewidth=2,
+            color="tab:orange",
+            label="Tied Predictions",
+        )
+        format_axis(
+            ax,
+            "Output Ambiguity by Stopping Timestep",
+            "Tied Predictions (%)",
+        )
+        ax.legend()
+
+    plots = [
+        ("accuracy", plot_accuracy),
+        ("tie_rate", plot_tie_rate),
+    ]
+
+    saved_paths = []
+
+    # Save individual plots.
+    for suffix, draw_plot in plots:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        draw_plot(ax)
+        fig.suptitle(title)
+        fig.tight_layout()
+
+        output_path = plot_path / f"{prefix}_{suffix}.png"
+        fig.savefig(output_path, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        saved_paths.append(output_path)
+
+    # Save both plots together.
+    fig, axes = plt.subplots(
+        1, 2,
+        figsize=(14, 5),
+        constrained_layout=True,
+    )
+    fig.suptitle(title)
+
+    for ax, (_, draw_plot) in zip(axes, plots):
+        draw_plot(ax)
+
+    output_path = plot_path / f"{prefix}_combined.png"
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    saved_paths.append(output_path)
+
+    return saved_paths

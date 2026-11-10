@@ -73,7 +73,7 @@ elif(args.encoding == 4):
     checkpoint_file = "InterpolatedVoxelGrids"
 
 # Model type
-if(args.model > 1):
+if(args.model > 2):
     sys.exit(f"Error, incorrect model type: {args.model}")
 if(args.model == 0):
     model_type = "SNN"
@@ -89,6 +89,8 @@ elif(args.model == 1):
     #         model = wavelet_models.WaveletModel
     #     case "DVSGesture": 
     #         model = wavelet_models.WaveletModel_Gesture
+elif(args.model == 2):
+    model_type = "IntegratedWaveletSNN"
 
 # Model training continuation
 if(args.model_hist_filename != ""):

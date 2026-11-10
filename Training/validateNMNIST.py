@@ -15,6 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import trainhelpers as th
 from Models.snn_baseline import SNNModel
 from Models.snn_wavelet import WaveletModel
+from Models.snn_wavelet_integrated import IntegratedWaveletBlockModel
 
 import Encodings.nmnistencodings as encodings
 
@@ -27,7 +28,7 @@ model_type = ""
 # setup args
 parser = argparse.ArgumentParser(description="Training for NMNIST SNN models.")
 
-parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: voxel grids, 2: DCT, 3: truncated DCT, 4: aggressive DCT")
+parser.add_argument("encoding", type=int, help="Encoding type. 0: spiketrain, 1: event frames, 2: DCT, 3: truncated DCT, 4: voxel grids")
 parser.add_argument("model", type=int, help="Model type for training. 0: traditional snn, 1: front-end 2d haar wavelet snn")
 parser.add_argument("model_filename", default="", help="Filename for model to validate.")
 parser.add_argument("model_hist_filename", default="", help="Filename of the model's history to validate.")
@@ -48,21 +49,26 @@ if(args.encoding > 4):
 if(args.encoding == 0): 
     transform = encodings.spiketrain_transform
     encoding = "spike_train"
+    checkpoint_file = "SpikeTrain"
 elif(args.encoding == 1):
     transform = encodings.voxel_grids_transform
     encoding = "voxel_grid"
+    checkpoint_file = "VoxelGrids"
 elif(args.encoding == 2):
     transform = encodings.dct_transform
     encoding = "dct"
+    checkpoint_file = "DCT"
 elif(args.encoding == 3):
     transform = encodings.truncated_dct_transform
     encoding = "trunc_dct"
+    checkpoint_file = "TruncatedDCT"
 elif(args.encoding == 4):
-    transform = encodings.aggressive_dct_transform
-    encoding = "aggr_dct"
+    transform = encodings.interpolated_voxel_grid_transform
+    encoding = "interp_voxel_grid"
+    checkpoint_file = "InterpolatedVoxelGrids"
 
 # Model type
-if(args.model > 1):
+if(args.model > 3):
     sys.exit(f"Error, incorrect model type: {args.model}")
 if(args.model == 0):
     model = SNNModel()
@@ -70,6 +76,12 @@ if(args.model == 0):
 elif(args.model == 1):
     model = WaveletModel()
     model_type = "FrontEndWaveletSNN"
+elif(args.model == 2):
+    model = WaveletPerceptronModel()
+    model_type = "FrontEndWaveletPerceptronSNN"
+else:
+    model = IntegratedWaveletBlockModel()
+    model_type = "IntegratedWaveletSNN"
 
 # Model training continuation
 if(args.model_filename != ""):
@@ -82,7 +94,7 @@ if(args.model_filename != ""):
 
     checkpoint = torch.load(args.model_filename, map_location=torch.device('cpu'), weights_only=True)
     model.load_state_dict(checkpoint['model_state_dict'])
-    history = th.load_hist(args.model_hist_filename, model_type)
+    history = th.load_hist(args.model_hist_filename, model_type, "NMNIST")
 
 
 # Debug and plotting
@@ -136,7 +148,7 @@ if(debug):
     frames, labels = next(iter(train_loader))
 
     print(f"Input: {frames.shape}")
-    frames = frames.float()
+    frames = frames.float().to(device)
 
     output, spikes_count = model(frames)
 
@@ -160,16 +172,56 @@ validation_metrics = {
 }
 validation_metrics = th.validate(model=model, val_loader=test_loader, loss_fun=loss_fun, debug=debug, dataset="NMNIST", model_type=model_type, device=device)
 
-print(f"Validation metrics for model with {epochs} epochs:")
-print("\tLoss: ", validation_metrics["loss"])
-print("\tAccuracy: ", validation_metrics["acc"])
-print("\tLayer 1 firing rate: ", validation_metrics["layer1_fr"])
-print("\tLayer 2 firing rate: ", validation_metrics["layer2_fr"])
-print("\tOutput firing rate: ", validation_metrics["output_fr"])
+if not debug:
+    print(f"Validation metrics for model with {epochs} epochs using all timesteps:")
+    print("\tLoss: ", validation_metrics["loss"])
+    print("\tAccuracy: ", validation_metrics["acc"])
+    print("\tLayer 1 firing rate: ", validation_metrics["layer1_fr"])
+    print("\tLayer 2 firing rate: ", validation_metrics["layer2_fr"])
+    print("\tOutput firing rate: \n", validation_metrics["output_fr"])
 
 # show charts again for debug purposes
 if(plot):
     print("Printing charts")
-    th.plot_hist(history=history, epochs=epochs, filename_ext="val_")
+    # th.plot_hist(history=history, epochs=epochs, filename_ext="val_")
+    th.plot_hist(history=history, epochs=epochs, dataset="NMNIST")
 
+results = th.evaluate_early_exit(
+    model=model,
+    test_loader=test_loader,
+    device=device,
+    exit_steps=(10, 20, 30, 50),
+)
 
+baseline_step = max(results)
+baseline_accuracy = results[baseline_step]["accuracy"]
+
+print(
+    f"\n{'Steps':>6} | {'Accuracy (%)':>12} | {'Tie rate (%)':>12} | "
+    f"{'Accuracy loss (pp)':>18} | {'Fewer steps (%)':>15} | {'Samples':>8}"
+)
+print("-" * 90)
+
+for step, stats in sorted(results.items()):
+    accuracy_loss = baseline_accuracy - stats["accuracy"]
+    step_reduction = 100 * (1 - step / baseline_step)
+
+    print(
+        f"{step:>6} | "
+        f"{stats['accuracy']:>12.2f} | "
+        f"{stats['tie_rate']:>12.2f} | "
+        f"{accuracy_loss:>18.2f} | "
+        f"{step_reduction:>15.2f} | "
+        f"{stats['samples']:>8}"
+    )
+
+if plot:
+    th.plot_early_exit(
+        results,
+        history={
+            "dataset": "NMNIST",
+            "type": model_type,
+            "encoding": encoding,
+        },
+        filename_ext="pretrained",
+    )
